@@ -10,14 +10,16 @@ contract VafietyLicenseRegistry {
   address private authority; //indirizzo dell'Authority (per convenzione sarà colui che deploya il contratto)
   uint256 private varietyCounter; //contatore delle varietà registrate
   uint256 private batchCounter;  //contatore dei batch registrati
+  uint256 private licenseCounter; //contatore delle licenze emesse
 
   //mappatura
   mapping (uint256 => Variety) private varieties; //mappatura delle varietà registrate
   mapping (uint256 => Batch) private batches; //mappatura dei batch registrati
   mapping (uint256 => License) private licenses; //mappatura delle licenze emesse
+  mapping (uint256 => uint256[]) private varietyToBatches; //mappatura dei batch per ogni varietà
   mapping (uint256 => uint256[]) private varietyToLicenses; //mappatura delle licenze per ogni varietà
   mapping (address => bool) private authorizedInspectors; //mappatura degli ispettori autorizzati
-
+  mapping (string => bool) private registrationNumbers; //mappatura dei numeri di registrazione delle varietà per evitare duplicati
   /*
     =========MODIFIER==========
   */
@@ -63,41 +65,17 @@ contract VafietyLicenseRegistry {
   }
 
 
-
-
-
-
-
-
   //CONSTRUCTOR
   constructor() {
     authority = msg.sender; //l'authority è colui che deploya il contratto
     varietyCounter = 0;
     batchCounter = 0;
+    licenseCounter = 0;
   }
 
-  //funzioni per Authority
-  function getAuthority() public view returns (address) {
-    return authority;
-  }
 
-  function getVarietyCounter() public view returns (uint256) {
-    return varietyCounter;
-  }
+  //Funzioni 
 
-  function getBatchCounter() public view returns (uint256) {
-    return batchCounter;
-  }
+  
 
-  function getVariety(uint256 _varietyId) public view returns (Variety memory) {
-    return varieties[_varietyId];
-  }
-
-  function getBatch(uint256 _batchId) public view returns (Batch memory) {
-    return batches[_batchId];
-  }
-
-  function getLicense(uint256 _licenseId) public view returns (License memory) {
-    return licenses[_licenseId];
-  }
 }
