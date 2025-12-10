@@ -4,7 +4,7 @@ pragma solidity ^0.8.28;
 // Uncomment this line to use console.log
 // import "hardhat/console.sol";
 
-import "./StruttureDati.sol";
+import "./structs/StruttureDati.sol";
 
 contract VafietyLicenseRegistry {
   address private authority; //indirizzo dell'Authority (per convenzione sarà colui che deploya il contratto)
@@ -18,6 +18,41 @@ contract VafietyLicenseRegistry {
   mapping (uint256 => uint256[]) private varietyToLicenses; //mappatura delle licenze per ogni varietà
   mapping (address => bool) private authorizedInspectors; //mappatura degli ispettori autorizzati
 
+  //modificatori
+  modifier onlyAuthority() {
+    require(msg.sender == authority, "Only authority can call this function");
+    _;
+  }
+
+  modifier onlyInspector() {
+    require(authorizedInspectors[msg.sender], "Only authorized inspectors can call this function");
+    _;
+  }
+
+  modifier onlyBreederOf(uint256 _varietyId) {
+    require(msg.sender != authority, "Authority cannot be a breeder");
+    require(varieties[_varietyId].breeder == msg.sender, "Only breeder of this variety can call this function");
+    _;
+  }
+
+  modifier onlyLicenseeOf(uint256 _licenseId) {
+    require(msg.sender != authority, "Authority cannot be a licensee");
+    require(licenses[_licenseId].licensee == msg.sender, "Only licensee of this license can call this function");
+    _;
+  }
+
+  modifier varietyExists(uint256 _varietyID) {
+    require(_varietyID > 0 && _varietyID <= batchCounter, "Invalid batch ID");
+    _;
+  }
+
+  modifier batchExists(uint256 _batchId) {
+    require(_batchId > 0 && _batchId <= batchCounter, "Invalid batch ID");
+    _;
+}
+
+
+
 
   //costruttore
   constructor() {
@@ -26,7 +61,7 @@ contract VafietyLicenseRegistry {
     batchCounter = 0;
   }
 
-  //funzioni per 
+  //funzioni per Authority
   function getAuthority() public view returns (address) {
     return authority;
   }
@@ -50,10 +85,4 @@ contract VafietyLicenseRegistry {
   function getLicense(uint256 _licenseId) public view returns (License memory) {
     return licenses[_licenseId];
   }
-
-  function getMyLi
-
-  
-
-
 }
