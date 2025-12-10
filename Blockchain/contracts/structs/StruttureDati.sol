@@ -1,0 +1,51 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.28;
+
+import "./enum.sol";
+
+
+struct Variety {
+    uint256 varietyid;
+    string denomination;
+    string registrationNumber;
+    address breeder;
+    string documentHash;
+    string documentURI;
+    uint256 registrationDate;
+    VarietyStatus status;
+}
+
+struct Batch {
+    uint256 id;
+    uint256 varietyId;
+    string productionDate;
+    string quantity;
+    string metadata;
+    BatchStatus status;
+    InspectionStatus inspectionStatus;
+    address inspector;
+    uint256 inspectionDate;
+    string inspectionNotes;
+}
+
+struct License {
+    uint256 licenseid;
+    uint256 varietyId;
+    address licensee;
+    uint256 issueDate;
+    uint256 expiryDate;
+    uint256 revocationDate;
+    LicenseStatus status;
+    string revocationReason;
+}
+
+struct VerificationResult {
+    bool isValid;
+    string message;
+    Variety variety;
+    License license;
+    Batch batch;
+    address breeder;
+    bool licenseRevokedAferProduction;
+    TrustLevel trustLevel;
+}
