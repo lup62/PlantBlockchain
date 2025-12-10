@@ -26,7 +26,7 @@ contract VafietyLicenseRegistry {
     batchCounter = 0;
   }
 
-  //getter e setter
+  //funzioni per 
   function getAuthority() public view returns (address) {
     return authority;
   }
@@ -38,6 +38,20 @@ contract VafietyLicenseRegistry {
   function getBatchCounter() public view returns (uint256) {
     return batchCounter;
   }
+
+  function getVariety(uint256 _varietyId) public view returns (Variety memory) {
+    return varieties[_varietyId];
+  }
+
+  function getBatch(uint256 _batchId) public view returns (Batch memory) {
+    return batches[_batchId];
+  }
+
+  function getLicense(uint256 _licenseId) public view returns (License memory) {
+    return licenses[_licenseId];
+  }
+
+  function getMyLi
 
   
 
