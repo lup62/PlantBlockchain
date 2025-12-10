@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-import "./enum.sol";
+import "../enums/enum.sol";
 
 
 struct Variety {
-    uint256 varietyid;
+    uint256 varietyID;
     string denomination;
     string registrationNumber;
     address breeder;
@@ -16,8 +16,8 @@ struct Variety {
 }
 
 struct Batch {
-    uint256 id;
-    uint256 varietyId;
+    uint256 batchID;
+    uint256 varietyID;
     string productionDate;
     string quantity;
     string metadata;
@@ -29,8 +29,8 @@ struct Batch {
 }
 
 struct License {
-    uint256 licenseid;
-    uint256 varietyId;
+    uint256 licenseID;
+    uint256 varietyID;
     address licensee;
     uint256 issueDate;
     uint256 expiryDate;
