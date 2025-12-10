@@ -63,7 +63,16 @@ contract VafietyLicenseRegistry {
     require(_licenseId > 0 && _licenseId <= varietyCounter, "Invalid license ID");
     _;
   }
-
+  /*
+    =========EVENTI==========
+  */
+  event VarietyRegistered(
+    uint256 indexed varietyID,
+    string denomination,
+    string registrationNumber,
+    address indexed breeder,
+    uint256 registrationDate
+  );
 
   //CONSTRUCTOR
   constructor() {
@@ -74,7 +83,48 @@ contract VafietyLicenseRegistry {
   }
 
 
-  //Funzioni 
+  //Funzioni AUTHORITY
+  /**
+  @notice Registra una varietà;
+  @param _denomination Denominazione della varietà;
+  @param _registrationNumber Numero di registrazione della varietà;
+  @param _breeder Indirizzo del breeder della varietà;
+  @param _documentHash Hash del documento di registrazione della varietà;
+  @param _documentURI URI del documento di registrazione della varietà;
+   */
+
+  function registerVariety(
+    string memory _denomination,
+    string memory _registrationNumber,
+    address _breeder,
+    string memory _documentHash,
+    string memory _documentURI
+  ) public onlyAuthority {
+    require(bytes(_denomination).length > 0, "Denomination cannot be empty");
+    require(bytes(_registrationNumber).length > 0, "Registration number cannot be empty");
+    require(!registrationNumbers[_registrationNumber], "Registration number already exists");
+    require (_breeder != address(0), "Breeder address cannot be zero");
+    require (bytes(_documentHash).length > 0, "Document hash cannot be empty");
+
+    varietyCounter++; //incrementa il contatore delle varietà
+    uint256 newVarietyID = varietyCounter;
+
+    varieties[newVarietyID] = Variety({
+      varietyID: newVarietyID,
+      denomination: _denomination,
+      registrationNumber: _registrationNumber,
+      breeder: _breeder,
+      documentHash: _documentHash,
+      documentURI: _documentURI,
+      registrationDate: block.timestamp,
+      status: VarietyStatus.ACTIVE
+    });
+
+    registrationNumbers[_registrationNumber] = true; //segna il numero di registrazione come esistente
+
+    emit VarietyRegistered(newVarietyID, _denomination, _registrationNumber, _breeder, block.timestamp);
+  }
+
 
   
 
