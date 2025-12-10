@@ -4,6 +4,8 @@ pragma solidity ^0.8.28;
 // Uncomment this line to use console.log
 // import "hardhat/console.sol";
 
+import "./StruttureDati.sol";
+
 contract VafietyLicenseRegistry {
   address private authority; //indirizzo dell'Authority (per convenzione sarà colui che deploya il contratto)
   uint256 private varietyCounter; //contatore delle varietà registrate
