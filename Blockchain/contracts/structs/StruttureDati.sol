@@ -25,7 +25,6 @@ struct Batch {
     InspectionStatus inspectionStatus;
     address inspector;
     uint256 inspectionDate;
-    string inspectionNotes;
 }
 
 struct License {
