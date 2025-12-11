@@ -165,6 +165,7 @@ contract VarietyLicenseRegistry {
     string memory _documentHash,
     string memory _documentURI
   ) public onlyAuthority {
+    require(_breeder != authority, "Authority cannot be breeder");
     require(bytes(_denomination).length > 0, "Denomination cannot be empty");
     require(bytes(_registrationNumber).length > 0, "Registration number cannot be empty");
     require(!registrationNumbers[_registrationNumber], "Registration number already exists");
@@ -268,6 +269,7 @@ contract VarietyLicenseRegistry {
     address _licensee,
     uint256 _expirationDate
   ) external onlyBreederOf(_varietyID) varietyExists(_varietyID) {
+    require(_licensee != authority, "Authority cannot be licensee");
     require(_licensee != address(0), "Licensee address cannot be zero");
     require(varieties[_varietyID].status == VarietyStatus.ACTIVE, "Variety must be active to issue a license");
 
