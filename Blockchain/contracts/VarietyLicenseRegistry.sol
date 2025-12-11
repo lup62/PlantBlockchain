@@ -418,6 +418,8 @@ contract VarietyLicenseRegistry {
   @param _quantity Quantità prodotta (es. "100 kg");
   @param _metadata Metadati aggiuntivi relativi al batch (es. note di produzione, condizioni ambientali, ecc.);
   @dev La data di produzione viene impostata automaticamente alla data corrente (block.timestamp);
+  @dev Una volta creato, il batch non può essere modificato o cancellato, bisogna creare un nuovo batch in caso di errori,
+  sarà poi compito dell'ispettore validare o invalidare il batch tramite l'ispezione.
   */
 
   function createBatch(
