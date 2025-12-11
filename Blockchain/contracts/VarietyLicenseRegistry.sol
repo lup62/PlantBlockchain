@@ -138,7 +138,6 @@ contract VarietyLicenseRegistry {
     uint256 indexed batchID,
     InspectionStatus inspectionStatus,
     address indexed inspector,
-    string inspectionNotes,
     uint256 inspectionDate
   );
 
@@ -453,8 +452,7 @@ contract VarietyLicenseRegistry {
       status: BatchStatus.VALID,
       inspectionStatus: InspectionStatus.NOT_INSPECTED,
       inspector: address(0),
-      inspectionDate: 0,
-      inspectionNotes: ""
+      inspectionDate: 0
     });
 
     emit BatchCreated(newBatchID, license.varietyID, msg.sender, block.timestamp);
@@ -469,22 +467,19 @@ contract VarietyLicenseRegistry {
   /**
   @notice Ispeziona un batch di produzione e ne determina la validità;
   @param _batchID ID del batch da ispezionare;
-  @param _notes Note dell'ispezione (es. motivi di approvazione o rifiuto);
+  @param _approve Booleano che indica se il batch è approvato (true) o rifiutato (false);
+  @dev Il batch ha la possibilità di essere ri-ispezionato;
    */
 
   function inspectBatch(
     uint256 _batchID,
-    string memory _notes,
     bool _approve
     ) external onlyInspector batchExists(_batchID) {
     Batch storage batch = batches[_batchID];
-    require(batch.inspectionStatus == InspectionStatus.NOT_INSPECTED, "Batch has already been inspected");
-    require(bytes(_notes).length > 0, "Inspection notes cannot be empty");
 
     //aggiorna lo stato del batch in base all'ispezione
     batch.inspector = msg.sender;
     batch.inspectionDate = block.timestamp;
-    batch.inspectionNotes = _notes;
 
     if (_approve) {
       batch.inspectionStatus = InspectionStatus.APPROVED; //se approvato
@@ -494,7 +489,7 @@ contract VarietyLicenseRegistry {
       batch.status = BatchStatus.INVALIDATED;
     }
 
-    emit BatchInspected( _batchID, batch.inspectionStatus, msg.sender, _notes, block.timestamp);
+    emit BatchInspected( _batchID, batch.inspectionStatus, msg.sender, block.timestamp);
   }
 
 
@@ -611,9 +606,16 @@ contract VarietyLicenseRegistry {
 
     }
 
-    
-
-
-
-
+    //5. Se tutti i controlli passano, ritorna il risultato positivo
+    return VerificationResult({
+      isValid: isValid,
+      message: message,
+      variety: variety,
+      license: license,
+      batch: batch,
+      breeder: variety.breeder,
+      licenseRevokedAferProduction: licenseRevokedAfterProduction,
+      trustLevel: trustLevel
+    });
+  }
 }
