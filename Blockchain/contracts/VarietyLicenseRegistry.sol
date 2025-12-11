@@ -85,6 +85,11 @@ contract VafietyLicenseRegistry {
     uint256 addedDate
   );
 
+  event InspectorRemoved(
+    address indexed inspector,
+    uint256 removedDate
+  );
+
   //CONSTRUCTOR
   constructor() {
     authority = msg.sender; //l'authority è colui che deploya il contratto
@@ -169,5 +174,21 @@ contract VafietyLicenseRegistry {
 
     emit InspectorAdded(_inspector, block.timestamp);
   }
+
+  /*
+   @Rimuove un ispettore autorizzato;
+   @param _inspector Indirizzo dell'ispettore da rimuovere;
+  */
+  function removeInspector(address _inspector) external onlyAuthority {
+    require(authorizedInspectors[_inspector], "Inspector not present in the list of authorized inspectors");
+    
+    authorizedInspectors[_inspector] = false;
+
+    emit InspectorRemoved(_inspector, block.timestamp);
+  }
+
+  
+
+
 
 }
