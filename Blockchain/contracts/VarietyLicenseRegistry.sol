@@ -134,6 +134,14 @@ contract VarietyLicenseRegistry {
     uint256 productionDate
   );
 
+  event BatchInspected(
+    uint256 indexed batchID,
+    InspectionStatus inspectionStatus,
+    address indexed inspector,
+    uint256 inspectionDate,
+    string inspectionNotes
+  );
+
 
 
 
@@ -450,6 +458,51 @@ contract VarietyLicenseRegistry {
 
     emit BatchCreated(newBatchID, license.varietyID, msg.sender, block.timestamp);
   }
+
+
+
+
+
+  //++++Funzioni Ispettore+++++
+
+  /**
+  @notice Ispeziona un batch di produzione e ne determina la validità;
+  @param _batchID ID del batch da ispezionare;
+  @param _notes Note dell'ispezione (es. motivi di approvazione o rifiuto);
+   */
+
+  function inspectBatch(
+    uint256 _batchID,
+    string memory _notes,
+    bool _approve
+    ) external onlyInspector batchExists(_batchID) {
+    Batch storage batch = batches[_batchID];
+    require(batch.inspectionStatus == InspectionStatus.NOT_INSPECTED, "Batch has already been inspected");
+    require(bytes(_notes).length > 0, "Inspection notes cannot be empty");
+
+    //aggiorna lo stato del batch in base all'ispezione
+    batch.inspector = msg.sender;
+    batch.inspectionDate = block.timestamp;
+    batch.inspectionNotes = _notes;
+
+    if (_approve) {
+      batch.inspectionStatus = InspectionStatus.APPROVED; //se approvato
+      batch.status = BatchStatus.VALID;
+    } else {
+      batch.inspectionStatus = InspectionStatus.REJECTED; //se rifiutato
+      batch.status = BatchStatus.INVALIDATED;
+    }
+
+    emit BatchInspected( _batchID, batch.inspectionStatus, msg.sender, block.timestamp, _notes);
+  }
+
+
+
+
+
+  
+
+
 
 
 
