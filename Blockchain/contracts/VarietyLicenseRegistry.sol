@@ -74,6 +74,17 @@ contract VafietyLicenseRegistry {
     uint256 registrationDate
   );
 
+  event VarietyRevoked(
+    uint256 indexed varietyID,
+    string reason,
+    uint256 revocationDate
+  );
+
+  event InspectorAdded(
+    address indexed inspector,
+    uint256 addedDate
+  );
+
   //CONSTRUCTOR
   constructor() {
     authority = msg.sender; //l'authority è colui che deploya il contratto
@@ -83,7 +94,8 @@ contract VafietyLicenseRegistry {
   }
 
 
-  //Funzioni AUTHORITY
+  //++++Funzioni AUTHORITY+++++
+
   /**
   @notice Registra una varietà;
   @param _denomination Denominazione della varietà;
@@ -107,8 +119,9 @@ contract VafietyLicenseRegistry {
     require (bytes(_documentHash).length > 0, "Document hash cannot be empty");
 
     varietyCounter++; //incrementa il contatore delle varietà
-    uint256 newVarietyID = varietyCounter;
+    uint256 newVarietyID = varietyCounter; //ottiene il nuovo ID della varietà
 
+    //crea la nuova varietà
     varieties[newVarietyID] = Variety({
       varietyID: newVarietyID,
       denomination: _denomination,
@@ -126,6 +139,35 @@ contract VafietyLicenseRegistry {
   }
 
 
-  
+  /*
+  @notice Revoca una varietà (da utlizzare in casi eccezionali es. frode o erore nella registrazione);
+  @param _varietyID ID della varietà da revocare;
+  @param resason Motivo della revoca;
+  */
+  function revokeVariety(
+    uint256 _varietyID, 
+    string memory _reason
+    ) external onlyAuthority varietyExists(_varietyID) {
+    require(varieties[_varietyID].status == VarietyStatus.ACTIVE, "Variety is already revoked");
+    require(bytes(_reason).length>0, "Reason cannot be empty");
+    Variety storage variety = varieties[_varietyID];
+
+    variety.status = VarietyStatus.REVOKED;
+    emit VarietyRevoked(_varietyID, _reason, block.timestamp);
+  }
+
+
+  /*
+   @Aggiunge un ispettore autorizzato;
+   @param _inspector Indirizzo dell'ispettore da autorizzare;
+  */
+  function addInspector(address _inspector) external onlyAuthority {
+    require(_inspector != address(0), "Inspector address cannot be zero");
+    require(!authorizedInspectors[_inspector], "Inspector is already authorized");
+
+    authorizedInspectors[_inspector] = true;
+
+    emit InspectorAdded(_inspector, block.timestamp);
+  }
 
 }
