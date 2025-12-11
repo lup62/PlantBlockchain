@@ -90,6 +90,12 @@ contract VafietyLicenseRegistry {
     uint256 removedDate
   );
 
+  event AuthorityChanged(
+    address indexed oldAuthority,
+    address indexed newAuthority,
+    uint256 changeDate
+  );
+
   //CONSTRUCTOR
   constructor() {
     authority = msg.sender; //l'authority è colui che deploya il contratto
@@ -187,7 +193,26 @@ contract VafietyLicenseRegistry {
     emit InspectorRemoved(_inspector, block.timestamp);
   }
 
+  /*
+    @notice Cambia l'indirizzo dell'Authority; 
+    !!ATTENZIONE!! Questa operazione è IRREVERSIBILE e fa perdere il controllo del contratto all'attuale Authority;
+    @param _newAuthority Nuovo indirizzo dell'Authority;
+  */
+  function changeAuthority(address _newAuthority) external onlyAuthority {
+    require(_newAuthority != address(0), "New authority address cannot be zero");
+    require(_newAuthority != authority, "New authority address must be different from the current one");
+
+    address oldAuthority = authority;
+    authority = _newAuthority;
+    
+    emit AuthorityChanged(oldAuthority, _newAuthority, block.timestamp);
+  }
+
   
+
+
+
+
 
 
 
