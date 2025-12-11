@@ -120,6 +120,13 @@ contract VarietyLicenseRegistry {
     uint256 revocationDate
   );
 
+  event LicenseExpirationUpdated(
+    uint256 indexed licenseID,
+    uint256 oldExpirationDate,
+    uint256 newExpirationDate,
+    uint256 updateDate
+  );
+
   event BatchCreated(
     uint256 indexed batchID,
     uint256 indexed varietyID,
@@ -328,7 +335,7 @@ contract VarietyLicenseRegistry {
 
   /**
     @notice Revoca una licenza emessa; 
-    LA REVOCA PUÒ ESSERE EFFETTUATA SOLO DALL'AUTHORITY IN CASO DI EMERGENZA;
+    @dev LA REVOCA PUÒ ESSERE EFFETTUATA SOLO DALL'AUTHORITY IN CASO DI EMERGENZA;
     @param _licenseID ID della licenza da revocare;
     @param _reason Motivo della revoca;
   */
@@ -350,11 +357,35 @@ contract VarietyLicenseRegistry {
 
 
   /**
-  * @notice prolungare la scadenza di una licenza esistente;
+  * @notice Aggiornare la scadenza di una licenza esistente;
   * @param _licenseID ID della licenza da prolungare;
   * @param _newExpirationDate Nuova data di scadenza della licenza (timestamp);
   * @dev 
   */
+  function updateLicenseExpiration(
+    uint256 _licenseID,
+    uint256 _newExpirationDate,
+  ) external licenseExists(_licenseID) {
+        require(
+            varieties[varietyId].breeder == msg.sender,
+            "Only breeder can update expiration"
+        );
+
+        License storage license = licenses[_licenseID];
+        uint256 varietyId = license.varietyID;
+
+        require(license.status == LicenseStatus.ACTIVE, "License is not active");
+
+        if(_newExpirationDate == 0) {
+            _newExpirationDate = type(uint256).max; //se la data di scadenza è 0, la licenza non scade mai
+        } else {
+            require(_newExpirationDate > block.timestamp, "Expiration date must be in the future");
+        }
+
+        uint256 oldExpirationDate = license.expiryDate;
+        license.expiryDate = _newExpirationDate;
+    emit LicenseExpirationUpdated(_licenseID, oldExpirationDate, _newExpirationDate, block.timestamp);
+  }
 
 
   //++++Funzioni Licenziataro+++++
