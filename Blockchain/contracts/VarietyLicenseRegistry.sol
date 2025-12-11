@@ -493,7 +493,7 @@ contract VarietyLicenseRegistry {
       batch.status = BatchStatus.INVALIDATED;
     }
 
-    emit BatchInspected( _batchID, batch.inspectionStatus, msg.sender, _notes, block.timestamp, );
+    emit BatchInspected( _batchID, batch.inspectionStatus, msg.sender, _notes, block.timestamp);
   }
 
 
