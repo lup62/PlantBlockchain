@@ -16,10 +16,14 @@ contract VafietyLicenseRegistry {
   mapping (uint256 => Variety) private varieties; //mappatura delle varietà registrate
   mapping (uint256 => Batch) private batches; //mappatura dei batch registrati
   mapping (uint256 => License) private licenses; //mappatura delle licenze emesse
-  mapping (uint256 => uint256[]) private varietyToBatches; //mappatura dei batch per ogni varietà
-  mapping (uint256 => uint256[]) private varietyToLicenses; //mappatura delle licenze per ogni varietà
+  mapping(address => uint256[]) private licenseeToLicenses; //mappatura delle licenze per ogni licenziatario [licensee address => array di licenseID]
+  mapping (uint256 => uint256[]) private varietyToLicenses; //mappatura delle licenze per ogni varietà [varietyID => array di licenseID]
   mapping (address => bool) private authorizedInspectors; //mappatura degli ispettori autorizzati
   mapping (string => bool) private registrationNumbers; //mappatura dei numeri di registrazione delle varietà per evitare duplicati
+
+
+
+
   /*
     =========MODIFIER==========
   */
@@ -63,6 +67,12 @@ contract VafietyLicenseRegistry {
     require(_licenseId > 0 && _licenseId <= varietyCounter, "Invalid license ID");
     _;
   }
+
+
+
+
+
+
   /*
     =========EVENTI==========
   */
@@ -96,6 +106,17 @@ contract VafietyLicenseRegistry {
     uint256 changeDate
   );
 
+  event LicenseIssued(
+    uint256 indexed licenseID,
+    uint256 indexed varietyID,
+    address indexed licensee,
+    uint256 issueDate,
+    uint256 expiryDate
+  );
+
+
+
+
   //CONSTRUCTOR
   constructor() {
     authority = msg.sender; //l'authority è colui che deploya il contratto
@@ -103,6 +124,7 @@ contract VafietyLicenseRegistry {
     batchCounter = 0;
     licenseCounter = 0;
   }
+
 
 
   //++++Funzioni AUTHORITY+++++
@@ -144,7 +166,7 @@ contract VafietyLicenseRegistry {
       status: VarietyStatus.ACTIVE
     });
 
-    registrationNumbers[_registrationNumber] = true; //segna il numero di registrazione come esistente
+    registrationNumbers[_registrationNumber] = true; //segna il numero di registrazione come esistente, serve per evitare duplicati
 
     emit VarietyRegistered(newVarietyID, _denomination, _registrationNumber, _breeder, block.timestamp);
   }
@@ -208,7 +230,69 @@ contract VafietyLicenseRegistry {
     emit AuthorityChanged(oldAuthority, _newAuthority, block.timestamp);
   }
 
-  
+
+
+
+
+  //++++Funzioni ISPETTORI BREEDER+++++
+
+  /*
+    @notice Emette una licenza per una varietà registrata;
+    @param _varietyID ID della varietà per cui emettere la licenza;
+    @param _licensee Indirizzo del licenziatario;
+    @param _expirationDate Data di scadenza della licenza (timestamp); se impostato a 0 la licenza non scade mai;
+  */
+
+  function issueLicense(
+    uint256 _varietyID,
+    address _licensee,
+    uint256 _expirationDate
+  ) external onlyBreederOf(_varietyID) varietyExists(_varietyID) {
+    require(_licensee != address(0), "Licensee address cannot be zero");
+    require(_expirationDate > block.timestamp, "Expiration date must be in the future");
+    require(varieties[_varietyID].status == VarietyStatus.ACTIVE, "Variety must be active to issue a license");
+    if (_expirationDate <= block.timestamp) {
+      revert("Expiration date must be in the future");
+    }
+
+    if (_expirationDate == 0) {
+      _expirationDate = type(uint256).max; //se la data di scadenza è 0, la licenza non scade mai
+    }
+
+    //verifca che il licenziatario non abbia già una licenza attiva per la stessa varietà
+    uint256[] memory existingLicenses = licenseeToLicenses[_licensee];
+    for (uint256 i = 0; i < existingLicenses.length; i++) {
+      License memory lic = licenses[existingLicenses[i]];
+      if (lic.varietyID == _varietyID && lic.status == LicenseStatus.ACTIVE) {
+        revert("Licensee already has an active license for this variety");
+      }
+    }
+
+    //crea la nuova licenza
+    licenseCounter++;
+    uint256 newLicenseID = licenseCounter;
+
+    licenses[newLicenseID] = License({
+      licenseID: newLicenseID,
+      varietyID: _varietyID,
+      licensee: _licensee,
+      issueDate: block.timestamp,
+      expiryDate: _expirationDate,
+      revocationDate: 0,
+      status: LicenseStatus.ACTIVE,
+      revocationReason: ""
+    });
+
+    //aggiorna le mappature
+    licenseeToLicenses[_licensee].push(newLicenseID);
+    varietyToLicenses[_varietyID].push(newLicenseID);
+
+    emit LicenseIssued(newLicenseID, _varietyID, _licensee, block.timestamp, _expirationDate);
+
+
+  }
+
+
 
 
 
