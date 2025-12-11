@@ -302,7 +302,6 @@ contract VarietyLicenseRegistry {
     IN CASO DI EMERGENZA L'AUTHORITY PUÒ REVOCARE LA LICENZA TRAMITE LA FUNZIONE "revokeLicenseByAuthority";
     @param _licenseID ID della licenza da revocare;
     @param _reason Motivo della revoca;
-
     */
   function revokeLicense(
     uint256 _licenseID,
@@ -320,6 +319,12 @@ contract VarietyLicenseRegistry {
 
   }
 
+  /*
+  @notice Revoca una licenza emessa; 
+  LA REVOCA PUÒ ESSERE EFFETTUATA SOLO DALL'AUTHORITY IN CASO DI EMERGENZA;
+  @param _licenseID ID della licenza da revocare;
+  @param _reason Motivo della revoca;
+  */
   function revokeLicenseByAuthority(
     uint256 _licenseID,
     string memory _reason
