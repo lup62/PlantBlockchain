@@ -6,7 +6,7 @@ pragma solidity ^0.8.28;
 
 import "./structs/StruttureDati.sol";
 
-contract VafietyLicenseRegistry {
+contract VarietyLicenseRegistry {
   address private authority; //indirizzo dell'Authority (per convenzione sarà colui che deploya il contratto)
   uint256 private varietyCounter; //contatore delle varietà registrate
   uint256 private batchCounter;  //contatore dei batch registrati
@@ -56,7 +56,7 @@ contract VafietyLicenseRegistry {
 
   //ESISTENZA VARIETÀ, BATCH, LICENZA
   modifier varietyExists(uint256 _varietyID) {
-    require(_varietyID > 0 && _varietyID <= batchCounter, "Invalid batch ID");
+    require(_varietyID > 0 && _varietyID <= varietyCounter, "Invalid variety ID");
     _;
   }
   modifier batchExists(uint256 _batchId) {
@@ -64,7 +64,7 @@ contract VafietyLicenseRegistry {
     _;
   }
   modifier licenseExists(uint256 _licenseId) {
-    require(_licenseId > 0 && _licenseId <= varietyCounter, "Invalid license ID");
+    require(_licenseId > 0 && _licenseId <= licenseCounter, "Invalid license ID");
     _;
   }
 
@@ -112,6 +112,12 @@ contract VafietyLicenseRegistry {
     address indexed licensee,
     uint256 issueDate,
     uint256 expiryDate
+  );
+
+  event LicenseRevoked(
+    uint256 indexed licenseID,
+    string reason,
+    uint256 revocationDate
   );
 
 
@@ -175,7 +181,7 @@ contract VafietyLicenseRegistry {
   /*
   @notice Revoca una varietà (da utlizzare in casi eccezionali es. frode o erore nella registrazione);
   @param _varietyID ID della varietà da revocare;
-  @param resason Motivo della revoca;
+  @param reason Motivo della revoca;
   */
   function revokeVariety(
     uint256 _varietyID, 
@@ -249,20 +255,18 @@ contract VafietyLicenseRegistry {
     uint256 _expirationDate
   ) external onlyBreederOf(_varietyID) varietyExists(_varietyID) {
     require(_licensee != address(0), "Licensee address cannot be zero");
-    require(_expirationDate > block.timestamp, "Expiration date must be in the future");
     require(varieties[_varietyID].status == VarietyStatus.ACTIVE, "Variety must be active to issue a license");
-    if (_expirationDate <= block.timestamp) {
-      revert("Expiration date must be in the future");
-    }
 
     if (_expirationDate == 0) {
       _expirationDate = type(uint256).max; //se la data di scadenza è 0, la licenza non scade mai
+    } else {
+      require(_expirationDate > block.timestamp, "Expiration date must be in the future");
     }
 
     //verifca che il licenziatario non abbia già una licenza attiva per la stessa varietà
-    uint256[] memory existingLicenses = licenseeToLicenses[_licensee];
+    uint256[] storage existingLicenses = licenseeToLicenses[_licensee];
     for (uint256 i = 0; i < existingLicenses.length; i++) {
-      License memory lic = licenses[existingLicenses[i]];
+      License storage lic = licenses[existingLicenses[i]];
       if (lic.varietyID == _varietyID && lic.status == LicenseStatus.ACTIVE) {
         revert("Licensee already has an active license for this variety");
       }
@@ -288,7 +292,47 @@ contract VafietyLicenseRegistry {
     varietyToLicenses[_varietyID].push(newLicenseID);
 
     emit LicenseIssued(newLicenseID, _varietyID, _licensee, block.timestamp, _expirationDate);
+  }
 
+
+
+    /*
+    @notice Revoca una licenza emessa; 
+    LA REVOCA PUÒ ESSERE EFFETTUATA SOLO DAL BREEDER DELLA VARIETÀ CORRISPONDENTE;
+    IN CASO DI EMERGENZA L'AUTHORITY PUÒ REVOCARE LA LICENZA TRAMITE LA FUNZIONE "revokeLicenseByAuthority";
+    @param _licenseID ID della licenza da revocare;
+    @param _reason Motivo della revoca;
+
+    */
+  function revokeLicense(
+    uint256 _licenseID,
+    string memory _reason
+  ) external licenseExists(_licenseID) onlyBreederOf(licenses[_licenseID].varietyID)  {
+    require(licenses[_licenseID].status == LicenseStatus.ACTIVE, "License is not active");
+    require(bytes(_reason).length > 0, "Reason cannot be empty");
+
+    License storage license = licenses[_licenseID];
+    license.status = LicenseStatus.REVOKED;
+    license.revocationDate = block.timestamp;
+    license.revocationReason = _reason;
+
+    emit LicenseRevoked(_licenseID, _reason, block.timestamp);
+
+  }
+
+  function revokeLicenseByAuthority(
+    uint256 _licenseID,
+    string memory _reason
+  ) external onlyAuthority licenseExists(_licenseID) {
+    require(licenses[_licenseID].status == LicenseStatus.ACTIVE, "License is not active");
+    require(bytes(_reason).length > 0, "Reason cannot be empty");
+
+    License storage license = licenses[_licenseID];
+    license.status = LicenseStatus.REVOKED;
+    license.revocationDate = block.timestamp;
+    license.revocationReason = _reason;
+
+    emit LicenseRevoked(_licenseID, _reason, block.timestamp);
 
   }
 
