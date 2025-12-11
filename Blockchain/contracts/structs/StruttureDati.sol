@@ -18,7 +18,7 @@ struct Variety {
 struct Batch {
     uint256 batchID;
     uint256 varietyID;
-    string productionDate;
+    uint256 productionDate;
     string quantity;
     string metadata;
     BatchStatus status;
