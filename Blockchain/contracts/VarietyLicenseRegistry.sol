@@ -382,14 +382,9 @@ contract VarietyLicenseRegistry {
       inspector: address(0),
       inspectionDate: 0,
       inspectionNotes: ""
-    }
+    });
+
     emit BatchCreated(newBatchID, license.varietyID, msg.sender, block.timestamp);
-    
-  }
-
-
-
-
   }
 
 
