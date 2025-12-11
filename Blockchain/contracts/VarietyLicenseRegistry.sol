@@ -143,12 +143,12 @@ contract VarietyLicenseRegistry {
   //++++Funzioni AUTHORITY+++++
 
   /**
-  @notice Registra una varietà;
-  @param _denomination Denominazione della varietà;
-  @param _registrationNumber Numero di registrazione della varietà;
-  @param _breeder Indirizzo del breeder della varietà;
-  @param _documentHash Hash del documento di registrazione della varietà;
-  @param _documentURI URI del documento di registrazione della varietà;
+    @notice Registra una varietà;
+    @param _denomination Denominazione della varietà;
+    @param _registrationNumber Numero di registrazione della varietà;
+    @param _breeder Indirizzo del breeder della varietà;
+    @param _documentHash Hash del documento di registrazione della varietà;
+    @param _documentURI URI del documento di registrazione della varietà;
    */
 
   function registerVariety(
@@ -185,10 +185,10 @@ contract VarietyLicenseRegistry {
   }
 
 
-  /*
-  @notice Revoca una varietà (da utlizzare in casi eccezionali es. frode o erore nella registrazione);
-  @param _varietyID ID della varietà da revocare;
-  @param reason Motivo della revoca;
+  /**
+    @notice Revoca una varietà (da utlizzare in casi eccezionali es. frode o erore nella registrazione);
+    @param _varietyID ID della varietà da revocare;
+    @param reason Motivo della revoca;
   */
   function revokeVariety(
     uint256 _varietyID, 
@@ -203,7 +203,7 @@ contract VarietyLicenseRegistry {
   }
 
 
-  /*
+  /**
    @notice Aggiunge un ispettore autorizzato;
    @param _inspector Indirizzo dell'ispettore da autorizzare;
   */
@@ -216,7 +216,7 @@ contract VarietyLicenseRegistry {
     emit InspectorAdded(_inspector, block.timestamp);
   }
 
-  /*
+  /**
    @notice Rimuove un ispettore autorizzato;
    @param _inspector Indirizzo dell'ispettore da rimuovere;
   */
@@ -228,9 +228,9 @@ contract VarietyLicenseRegistry {
     emit InspectorRemoved(_inspector, block.timestamp);
   }
 
-  /*
+  /**
     @notice Cambia l'indirizzo dell'Authority; 
-    !!ATTENZIONE!! Questa operazione è IRREVERSIBILE e fa perdere il controllo del contratto all'attuale Authority;
+    @dev !!ATTENZIONE!! Questa operazione è IRREVERSIBILE e fa perdere il controllo del contratto all'attuale Authority;
     @param _newAuthority Nuovo indirizzo dell'Authority;
   */
   function changeAuthority(address _newAuthority) external onlyAuthority {
@@ -249,7 +249,7 @@ contract VarietyLicenseRegistry {
 
   //++++Funzioni ISPETTORI BREEDER+++++
 
-  /*
+  /**
     @notice Emette una licenza per una varietà registrata;
     @param _varietyID ID della varietà per cui emettere la licenza;
     @param _licensee Indirizzo del licenziatario;
@@ -303,13 +303,13 @@ contract VarietyLicenseRegistry {
 
 
 
-    /*
-    @notice Revoca una licenza emessa; 
-    LA REVOCA PUÒ ESSERE EFFETTUATA SOLO DAL BREEDER DELLA VARIETÀ CORRISPONDENTE;
-    IN CASO DI EMERGENZA L'AUTHORITY PUÒ REVOCARE LA LICENZA TRAMITE LA FUNZIONE "revokeLicenseByAuthority";
-    @param _licenseID ID della licenza da revocare;
-    @param _reason Motivo della revoca;
-    */
+  /**
+  @notice Revoca una licenza emessa; 
+  LA REVOCA PUÒ ESSERE EFFETTUATA SOLO DAL BREEDER DELLA VARIETÀ CORRISPONDENTE;
+  IN CASO DI EMERGENZA L'AUTHORITY PUÒ REVOCARE LA LICENZA TRAMITE LA FUNZIONE "revokeLicenseByAuthority";
+  @param _licenseID ID della licenza da revocare;
+  @param _reason Motivo della revoca;
+  */
   function revokeLicense(
     uint256 _licenseID,
     string memory _reason
@@ -326,11 +326,11 @@ contract VarietyLicenseRegistry {
 
   }
 
-  /*
-  @notice Revoca una licenza emessa; 
-  LA REVOCA PUÒ ESSERE EFFETTUATA SOLO DALL'AUTHORITY IN CASO DI EMERGENZA;
-  @param _licenseID ID della licenza da revocare;
-  @param _reason Motivo della revoca;
+  /**
+    @notice Revoca una licenza emessa; 
+    LA REVOCA PUÒ ESSERE EFFETTUATA SOLO DALL'AUTHORITY IN CASO DI EMERGENZA;
+    @param _licenseID ID della licenza da revocare;
+    @param _reason Motivo della revoca;
   */
   function revokeLicenseByAuthority(
     uint256 _licenseID,
@@ -348,14 +348,23 @@ contract VarietyLicenseRegistry {
 
   }
 
+
+  /**
+  * @notice prolungare la scadenza di una licenza esistente;
+  * @param _licenseID ID della licenza da prolungare;
+  * @param _newExpirationDate Nuova data di scadenza della licenza (timestamp);
+  * @dev 
+  */
+
+
   //++++Funzioni Licenziataro+++++
   
-  /*
+  /**
   @notice crea un nuovo lotto di produzione associato a una varietà per cui il licenziatario possiede una licenza attiva;
   @param _licenseID ID della licenza associata alla varietà prodotta;
   @param _quantity Quantità prodotta (es. "100 kg");
   @param _metadata Metadati aggiuntivi relativi al batch (es. note di produzione, condizioni ambientali, ecc.);
-  @notice La data di produzione viene impostata automaticamente alla data corrente (block.timestamp);
+  @dev La data di produzione viene impostata automaticamente alla data corrente (block.timestamp);
   */
 
   function createBatch(
@@ -386,8 +395,6 @@ contract VarietyLicenseRegistry {
 
     emit BatchCreated(newBatchID, license.varietyID, msg.sender, block.timestamp);
   }
-
-
 
 
 
