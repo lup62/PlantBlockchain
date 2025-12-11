@@ -499,5 +499,121 @@ contract VarietyLicenseRegistry {
 
 
 
+  //++++Funzioni di lettura pubbliche VIEW (NON CONSUMA GAS)+++++
+
+  /**
+  @notice Recupera le informazioni di un batch di produzione (Fun principale per gli utenti finali es. scansione con QR code);
+  @param _batchID ID del batch da recuperare;
+  @return VerificationResult Struttura contenente i risultati della verifica del batch, della varietà e della licenza associata;
+   */
+   function verifyBatch(uint256 _batchID) 
+   external view batchExists(_batchID) returns (VerificationResult memory) {
+    
+    Batch memory batch = batches[_batchID];
+    License memory license;
+    Variety memory variety = varieties[batch.varietyID];
+
+    bool isValid = true; //indica se il batch è valido
+    string memory message = ""; //messaggio di stato
+    bool licenseRevokedAfterProduction = false; //indica se la licenza è stata revocata dopo la produzione del batch
+    TrustLevel trustLevel = TrustLevel.MEDIUM; //default trust level
+
+    //1. Verifica varietà
+    if (variety.status != VarietyStatus.ACTIVE) {
+      isValid = false;
+      message = "Variety is revoked";
+      trustLevel = TrustLevel.LOW;
+
+      //ritorna il risultato della verifica
+      return VerificationResult({
+        isValid: isValid,
+        message: message,
+        variety: variety,
+        license: license,
+        batch: batch,
+        breeder: variety.breeder,
+        licenseRevokedAferProduction: licenseRevokedAfterProduction,
+        trustLevel: trustLevel
+      });
+    }
+
+    //2. Lotto prodotto dopo emissione licenza?
+    if (batch.productionDate < variety.registrationDate) {
+      isValid = false;
+      message = "Batch produced before variety registration";
+      trustLevel = TrustLevel.LOW;
+
+      //ritorna il risultato della verifica
+      return VerificationResult({
+        isValid: isValid,
+        message: message,
+        variety: variety,
+        license: license,
+        batch: batch,
+        breeder: variety.breeder,
+        licenseRevokedAferProduction: licenseRevokedAfterProduction,
+        trustLevel: trustLevel
+      });
+    }
+
+    //3. Gestione licenza revocata (CRITICA)
+    if(license.status == LicenseStatus.REVOKED) {
+      if(batch.productionDate < license.revocationDate) {
+        isValid = true;
+        message = "Batch valid - License was revoked after batch production";
+        licenseRevokedAfterProduction = true;
+        trustLevel = TrustLevel.LOW;
+
+      } else {
+        isValid = false;
+        message = "License revoked before batch production";
+        trustLevel = TrustLevel.INVALID;
+
+        //ritorna il risultato della verifica
+        return VerificationResult({
+          isValid: isValid,
+          message: message,
+          variety: variety,
+          license: license,
+          batch: batch,
+          breeder: variety.breeder,
+          licenseRevokedAferProduction: licenseRevokedAfterProduction,
+          trustLevel: trustLevel
+        });
+      }
+    }
+
+    //4. Verifica licenza attiva e non scaduta
+    if(block.timestamp > license.expiryDate) {
+      
+      //Controlla se pordotto prima della scadenza
+      if(batch.productionDate <= license.expiryDate) {
+        isValid = true;
+        message = "Batch valid - License expired after batch production";
+        trustLevel = TrustLevel.MEDIUM;
+      } else {
+        isValid = false;
+        message = "License expired before batch production";
+        trustLevel = TrustLevel.INVALID;
+
+        //ritorna il risultato della verifica
+        return VerificationResult({
+          isValid: isValid,
+          message: message,
+          variety: variety,
+          license: license,
+          batch: batch,
+          breeder: variety.breeder,
+          licenseRevokedAferProduction: licenseRevokedAfterProduction,
+          trustLevel: trustLevel
+        });
+      }
+
+    }
+
+    
+
+
+
 
 }
