@@ -138,8 +138,8 @@ contract VarietyLicenseRegistry {
     uint256 indexed batchID,
     InspectionStatus inspectionStatus,
     address indexed inspector,
-    uint256 inspectionDate,
-    string inspectionNotes
+    string inspectionNotes,
+    uint256 inspectionDate
   );
 
 
@@ -493,19 +493,8 @@ contract VarietyLicenseRegistry {
       batch.status = BatchStatus.INVALIDATED;
     }
 
-    emit BatchInspected( _batchID, batch.inspectionStatus, msg.sender, block.timestamp, _notes);
+    emit BatchInspected( _batchID, batch.inspectionStatus, msg.sender, _notes, block.timestamp, );
   }
-
-
-
-
-
-  
-
-
-
-
-
 
 
 
