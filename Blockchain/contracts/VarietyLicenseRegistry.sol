@@ -120,6 +120,13 @@ contract VarietyLicenseRegistry {
     uint256 revocationDate
   );
 
+  event BatchCreated(
+    uint256 indexed batchID,
+    uint256 indexed varietyID,
+    address indexed licensee,
+    uint256 productionDate
+  );
+
 
 
 
@@ -197,7 +204,7 @@ contract VarietyLicenseRegistry {
 
 
   /*
-   @Aggiunge un ispettore autorizzato;
+   @notice Aggiunge un ispettore autorizzato;
    @param _inspector Indirizzo dell'ispettore da autorizzare;
   */
   function addInspector(address _inspector) external onlyAuthority {
@@ -210,7 +217,7 @@ contract VarietyLicenseRegistry {
   }
 
   /*
-   @Rimuove un ispettore autorizzato;
+   @notice Rimuove un ispettore autorizzato;
    @param _inspector Indirizzo dell'ispettore da rimuovere;
   */
   function removeInspector(address _inspector) external onlyAuthority {
@@ -338,6 +345,50 @@ contract VarietyLicenseRegistry {
     license.revocationReason = _reason;
 
     emit LicenseRevoked(_licenseID, _reason, block.timestamp);
+
+  }
+
+  //++++Funzioni Licenziataro+++++
+  
+  /*
+  @notice crea un nuovo lotto di produzione associato a una varietà per cui il licenziatario possiede una licenza attiva;
+  @param _licenseID ID della licenza associata alla varietà prodotta;
+  @param _quantity Quantità prodotta (es. "100 kg");
+  @param _metadata Metadati aggiuntivi relativi al batch (es. note di produzione, condizioni ambientali, ecc.);
+  @notice La data di produzione viene impostata automaticamente alla data corrente (block.timestamp);
+  */
+
+  function createBatch(
+    uint256 _licenseID,
+    string memory _quantity,
+    string memory _metadata
+  ) external onlyLicenseeOf(_licenseID) licenseExists(_licenseID) {
+    License storage license = licenses[_licenseID];
+    require(license.status == LicenseStatus.ACTIVE, "License must be active to create a batch");
+    require(license.expiryDate > block.timestamp, "License has expired");
+
+    batchCounter++; //incrementa il contatore dei batch
+    uint256 newBatchID = batchCounter; //ottiene il nuovo ID del batch
+
+    //crea il nuovo batch
+    batches[newBatchID] = Batch({
+      batchID: newBatchID,
+      varietyID: license.varietyID,
+      productionDate: block.timestamp,
+      quantity: _quantity,
+      metadata: _metadata,
+      status: BatchStatus.VALID,
+      inspectionStatus: InspectionStatus.NOT_INSPECTED,
+      inspector: address(0),
+      inspectionDate: 0,
+      inspectionNotes: ""
+    }
+    emit BatchCreated(newBatchID, license.varietyID, msg.sender, block.timestamp);
+    
+  }
+
+
+
 
   }
 
