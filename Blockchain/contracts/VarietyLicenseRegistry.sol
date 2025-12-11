@@ -364,7 +364,7 @@ contract VarietyLicenseRegistry {
   */
   function updateLicenseExpiration(
     uint256 _licenseID,
-    uint256 _newExpirationDate,
+    uint256 _newExpirationDate
   ) external licenseExists(_licenseID) {
         require(
             varieties[varietyId].breeder == msg.sender,
