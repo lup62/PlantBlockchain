@@ -195,7 +195,7 @@ contract VarietyLicenseRegistry {
   /**
     @notice Revoca una varietà (da utlizzare in casi eccezionali es. frode o erore nella registrazione);
     @param _varietyID ID della varietà da revocare;
-    @param reason Motivo della revoca;
+    @param _reason Motivo della revoca;
   */
   function revokeVariety(
     uint256 _varietyID, 
@@ -366,25 +366,23 @@ contract VarietyLicenseRegistry {
     uint256 _licenseID,
     uint256 _newExpirationDate
   ) external licenseExists(_licenseID) {
-        require(
-            varieties[varietyId].breeder == msg.sender,
-            "Only breeder can update expiration"
-        );
+      License storage license = licenses[_licenseID];
+      uint256 varietyId = license.varietyID;
+      require(
+        varieties[varietyId].breeder == msg.sender,
+        "Only breeder can update expiration"
+      );
 
-        License storage license = licenses[_licenseID];
-        uint256 varietyId = license.varietyID;
+      require(license.status == LicenseStatus.ACTIVE, "License is not active");
+      if(_newExpirationDate == 0) {
+          _newExpirationDate = type(uint256).max; //se la data di scadenza è 0, la licenza non scade mai
+      } else {
+          require(_newExpirationDate > block.timestamp, "Expiration date must be in the future");
+      }
 
-        require(license.status == LicenseStatus.ACTIVE, "License is not active");
-
-        if(_newExpirationDate == 0) {
-            _newExpirationDate = type(uint256).max; //se la data di scadenza è 0, la licenza non scade mai
-        } else {
-            require(_newExpirationDate > block.timestamp, "Expiration date must be in the future");
-        }
-
-        uint256 oldExpirationDate = license.expiryDate;
-        license.expiryDate = _newExpirationDate;
-    emit LicenseExpirationUpdated(_licenseID, oldExpirationDate, _newExpirationDate, block.timestamp);
+      uint256 oldExpirationDate = license.expiryDate;
+      license.expiryDate = _newExpirationDate;
+      emit LicenseExpirationUpdated(_licenseID, oldExpirationDate, _newExpirationDate, block.timestamp);
   }
 
 
