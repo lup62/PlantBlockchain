@@ -398,6 +398,7 @@ contract VarietyLicenseRegistry {
   /**
   @notice rende una licenza permanentemente valida (senza scadenza);
   @param _licenseID ID della licenza da rendere permanente;
+  @dev funzione facoltativa perchè la licenza può già essere emessa senza scadenza impostando la data di scadenza a 0 nella funzione issueLicense;
   */
   function makeLicensePermanent(
     uint256 _licenseID
