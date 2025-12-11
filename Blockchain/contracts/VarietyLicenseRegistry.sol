@@ -359,10 +359,10 @@ contract VarietyLicenseRegistry {
 
 
   /**
-  * @notice Aggiornare la scadenza di una licenza esistente;
-  * @param _licenseID ID della licenza da prolungare;
-  * @param _newExpirationDate Nuova data di scadenza della licenza (timestamp);
-  * @dev 
+  @notice Aggiornare la scadenza di una licenza esistente;
+  @param _licenseID ID della licenza da prolungare;
+  @param _newExpirationDate Nuova data di scadenza della licenza (timestamp);
+  @dev 
   */
   function updateLicenseExpiration(
     uint256 _licenseID,
@@ -386,6 +386,28 @@ contract VarietyLicenseRegistry {
       license.expiryDate = _newExpirationDate;
       emit LicenseExpirationUpdated(_licenseID, oldExpirationDate, _newExpirationDate, block.timestamp);
   }
+
+  /**
+  @notice rende una licenza permanentemente valida (senza scadenza);
+  @param _licenseID ID della licenza da rendere permanente;
+  */
+  function makeLicensePermanent(
+    uint256 _licenseID
+  ) external licenseExists(_licenseID) {
+      License storage license = licenses[_licenseID];
+      uint256 varietyId = license.varietyID;
+      require(
+        varieties[varietyId].breeder == msg.sender,
+        "Only breeder can make license permanent"
+      );
+
+      require(license.status == LicenseStatus.ACTIVE, "License is not active");
+      uint256 oldExpirationDate = license.expiryDate;
+      license.expiryDate = type(uint256).max; //imposta la data di scadenza al massimo valore possibile (licenza permanente)
+      emit LicenseExpirationUpdated(_licenseID, oldExpirationDate, type(uint256).max, block.timestamp);
+  }
+
+
 
 
   //++++Funzioni Licenziataro+++++
