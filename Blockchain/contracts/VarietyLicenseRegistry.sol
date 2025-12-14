@@ -528,7 +528,7 @@ contract VarietyLicenseRegistry {
         license: license,
         batch: batch,
         breeder: variety.breeder,
-        licenseRevokedAferProduction: licenseRevokedAfterProduction,
+        licenseRevokedAfterProduction: licenseRevokedAfterProduction,
         trustLevel: trustLevel
       });
     }
@@ -547,7 +547,7 @@ contract VarietyLicenseRegistry {
         license: license,
         batch: batch,
         breeder: variety.breeder,
-        licenseRevokedAferProduction: licenseRevokedAfterProduction,
+        licenseRevokedAfterProduction: licenseRevokedAfterProduction,
         trustLevel: trustLevel
       });
     }
@@ -573,7 +573,7 @@ contract VarietyLicenseRegistry {
           license: license,
           batch: batch,
           breeder: variety.breeder,
-          licenseRevokedAferProduction: licenseRevokedAfterProduction,
+          licenseRevokedAfterProduction: licenseRevokedAfterProduction,
           trustLevel: trustLevel
         });
       }
@@ -600,7 +600,7 @@ contract VarietyLicenseRegistry {
           license: license,
           batch: batch,
           breeder: variety.breeder,
-          licenseRevokedAferProduction: licenseRevokedAfterProduction,
+          licenseRevokedAfterProduction: licenseRevokedAfterProduction,
           trustLevel: trustLevel
         });
       }
@@ -615,7 +615,7 @@ contract VarietyLicenseRegistry {
       license: license,
       batch: batch,
       breeder: variety.breeder,
-      licenseRevokedAferProduction: licenseRevokedAfterProduction,
+      licenseRevokedAfterProduction: licenseRevokedAfterProduction,
       trustLevel: trustLevel
     });
   }

@@ -46,6 +46,6 @@ struct VerificationResult {
     License license;
     Batch batch;
     address breeder;
-    bool licenseRevokedAferProduction;
+    bool licenseRevokedAfterProduction;
     TrustLevel trustLevel;
 }
