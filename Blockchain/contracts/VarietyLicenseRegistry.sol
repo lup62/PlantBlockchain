@@ -499,7 +499,34 @@ contract VarietyLicenseRegistry {
     emit BatchInspected( _batchID, batch.inspectionStatus, msg.sender, block.timestamp);
   }
 
+  /**
+   @notice funzione getter per ispettore per controllare i batch in pending
+   @return Array di batch non ancora ispezionati
+   */
+  function getPendingBatches() external view onlyInspector returns (Batch[] memory) {
 
+    uint256 pendingCount = 0;
+    //conta i batch in pending
+    for (uint256 i = 1; i <= batchCounter; i++) {
+      if (batches[i].inspectionStatus == InspectionStatus.NOT_INSPECTED) {
+        pendingCount++;
+      }
+    }
+
+    //crea un array per i batch in pending
+    Batch[] memory pendingBatches = new Batch[](pendingCount);
+    uint256 index = 0;
+
+    //popola l'array con i batch in pending
+    for (uint256 i = 1; i <= batchCounter; i++) {
+      if (batches[i].inspectionStatus == InspectionStatus.NOT_INSPECTED) {
+        pendingBatches[index] = batches[i];
+        index++;
+      }
+    }
+
+    return pendingBatches;
+  }
 
   //++++Funzioni di lettura pubbliche VIEW (NON CONSUMA GAS)+++++
 
