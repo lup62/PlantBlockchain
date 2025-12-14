@@ -475,7 +475,8 @@ contract VarietyLicenseRegistry {
   @notice Ispeziona un batch di produzione e ne determina la validità;
   @param _batchID ID del batch da ispezionare;
   @param _approve Booleano che indica se il batch è approvato (true) o rifiutato (false);
-  @dev Il batch ha la possibilità di essere ri-ispezionato;
+  @dev Il batch ha la possibilità di essere ri-ispezionato; si dà per buona l'ultima ispezione effettuata;
+  @dev L'ispettore si dà per affidabile, non sono previste limitazioni sul numero di ispezioni effettuabili;
    */
 
   function inspectBatch(
@@ -498,6 +499,7 @@ contract VarietyLicenseRegistry {
 
     emit BatchInspected( _batchID, batch.inspectionStatus, msg.sender, block.timestamp);
   }
+
 
   /**
    @notice funzione getter per ispettore per controllare i batch in pending
