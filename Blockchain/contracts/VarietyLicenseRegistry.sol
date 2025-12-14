@@ -534,7 +534,7 @@ contract VarietyLicenseRegistry {
     }
 
     //2. Lotto prodotto dopo emissione licenza?
-    if (batch.productionDate < variety.registrationDate) {
+    if (batch.productionDate < license.issueDate) {
       isValid = false;
       message = "Batch produced before variety registration";
       trustLevel = TrustLevel.LOW;
