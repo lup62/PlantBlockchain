@@ -277,6 +277,7 @@ contract VarietyLicenseRegistry {
     uint256 _expirationDate
   ) external onlyBreederOf(_varietyID) varietyExists(_varietyID) {
     require(_licensee != authority, "Authority cannot be licensee");
+    require(_licensee != msg.sender, "Cannot issue license to yourself");
     require(_licensee != address(0), "Licensee address cannot be zero");
     require(varieties[_varietyID].status == VarietyStatus.ACTIVE, "Variety must be active to issue a license");
 
@@ -402,17 +403,21 @@ contract VarietyLicenseRegistry {
   function makeLicensePermanent(
     uint256 _licenseID
   ) external licenseExists(_licenseID) {
-      License storage license = licenses[_licenseID];
-      uint256 varietyId = license.varietyID;
-      require(
-        varieties[varietyId].breeder == msg.sender,
-        "Only breeder can make license permanent"
-      );
+    License storage license = licenses[_licenseID];
+    require(
+       license.expiryDate != type(uint256).max,
+       "License is already permanent");
 
-      require(license.status == LicenseStatus.ACTIVE, "License is not active");
-      uint256 oldExpirationDate = license.expiryDate;
-      license.expiryDate = type(uint256).max; //imposta la data di scadenza al massimo valore possibile (licenza permanente)
-      emit LicenseExpirationUpdated(_licenseID, oldExpirationDate, type(uint256).max, block.timestamp);
+    uint256 varietyId = license.varietyID;
+    require(
+      varieties[varietyId].breeder == msg.sender,
+      "Only breeder can make license permanent"
+    );
+
+    require(license.status == LicenseStatus.ACTIVE, "License is not active");
+    uint256 oldExpirationDate = license.expiryDate;
+    license.expiryDate = type(uint256).max; //imposta la data di scadenza al massimo valore possibile (licenza permanente)
+    emit LicenseExpirationUpdated(_licenseID, oldExpirationDate, type(uint256).max, block.timestamp);
   }
 
 
@@ -438,6 +443,7 @@ contract VarietyLicenseRegistry {
     License storage license = licenses[_licenseID];
     require(license.status == LicenseStatus.ACTIVE, "License must be active to create a batch");
     require(license.expiryDate > block.timestamp, "License has expired");
+    require(bytes(_quantity).length > 0, "Quantity cannot be empty");
 
     batchCounter++; //incrementa il contatore dei batch
     uint256 newBatchID = batchCounter; //ottiene il nuovo ID del batch
