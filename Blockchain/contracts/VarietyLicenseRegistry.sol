@@ -446,6 +446,7 @@ contract VarietyLicenseRegistry {
     batches[newBatchID] = Batch({
       batchID: newBatchID,
       varietyID: license.varietyID,
+      licenseID: _licenseID,
       productionDate: block.timestamp,
       quantity: _quantity,
       metadata: _metadata,
@@ -504,12 +505,12 @@ contract VarietyLicenseRegistry {
    function verifyBatch(uint256 _batchID) 
    external view batchExists(_batchID) returns (VerificationResult memory) {
     
-    Batch memory batch = batches[_batchID];
-    License memory license;
-    Variety memory variety = varieties[batch.varietyID];
+    Batch memory batch = batches[_batchID]; //ottiene il batch
+    Variety memory variety = varieties[batch.varietyID]; //ottiene la varietà associata al batch
+    License memory license = licenses[batch.licenseID];  //ottiene la licenza associata alla varietà del batch
 
     bool isValid = true; //indica se il batch è valido
-    string memory message = ""; //messaggio di stato
+    string memory message = "Batch valid, no problems"; //messaggio di stato
     bool licenseRevokedAfterProduction = false; //indica se la licenza è stata revocata dopo la produzione del batch
     TrustLevel trustLevel = TrustLevel.MEDIUM; //default trust level
 
@@ -581,7 +582,7 @@ contract VarietyLicenseRegistry {
     //4. Verifica licenza attiva e non scaduta
     if(block.timestamp > license.expiryDate) {
       
-      //Controlla se pordotto prima della scadenza
+      //Controlla se prodotto prima della scadenza
       if(batch.productionDate <= license.expiryDate) {
         isValid = true;
         message = "Batch valid - License expired after batch production";
