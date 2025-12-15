@@ -532,126 +532,167 @@ contract VarietyLicenseRegistry {
 
   //++++Funzioni di lettura pubbliche VIEW (NON CONSUMA GAS)+++++
 
+
+  /**
+  @notice Funzione interna per concatenare messaggi di errore/avviso;
+  @param base The base string to concatenate;
+  @param add The string to append to the base string;
+  */
+  function _append(string memory base, string memory add)
+    internal
+    pure
+    returns (string memory)
+  {
+    if (bytes(base).length == 0) return add;
+    return string(abi.encodePacked(base, " | ", add));
+  }
+
   /**
   @notice Recupera le informazioni di un batch di produzione (Fun principale per gli utenti finali es. scansione con QR code);
   @param _batchID ID del batch da recuperare;
   @return VerificationResult Struttura contenente i risultati della verifica del batch, della varietà e della licenza associata;
    */
-   function verifyBatch(uint256 _batchID) 
-   external view batchExists(_batchID) returns (VerificationResult memory) {
-    
-    Batch memory batch = batches[_batchID]; //ottiene il batch
-    Variety memory variety = varieties[batch.varietyID]; //ottiene la varietà associata al batch
-    License memory license = licenses[batch.licenseID];  //ottiene la licenza associata alla varietà del batch
 
-    bool isValid = true; //indica se il batch è valido
-    string memory message = "Batch valid, no problems"; //messaggio di stato
-    bool licenseRevokedAfterProduction = false; //indica se la licenza è stata revocata dopo la produzione del batch
-    TrustLevel trustLevel = TrustLevel.MEDIUM; //default trust level
+  function verifyBatch(uint256 _batchID)
+    external
+    view
+    batchExists(_batchID)
+    returns (VerificationResult memory)
+  {
+    Batch memory batch = batches[_batchID];
+    Variety memory variety = varieties[batch.varietyID];
+    License memory license = licenses[batch.licenseID];
 
-    //1. Verifica varietà
+    bool isValid = true;
+    bool hasWarning = false;
+    bool licenseRevokedAfterProduction = false;
+
+    TrustLevel trustLevel = TrustLevel.MEDIUM;
+    string memory details = "";
+
+    // --- 1) Controlli "legali" sulla varietà ---
     if (variety.status != VarietyStatus.ACTIVE) {
-      isValid = false;
-      message = "Variety is revoked";
-      trustLevel = TrustLevel.LOW;
-
-      //ritorna il risultato della verifica
-      return VerificationResult({
-        isValid: isValid,
-        message: message,
-        variety: variety,
-        license: license,
-        batch: batch,
-        breeder: variety.breeder,
-        licenseRevokedAfterProduction: licenseRevokedAfterProduction,
-        trustLevel: trustLevel
-      });
+        isValid = false;
+        trustLevel = TrustLevel.INVALID;
+        details = _append(details, "Variety revoked");
     }
 
-    //2. Lotto prodotto dopo emissione licenza?
+    // --- 2) Coerenza temporale con registrazione varietà ---
+    if (batch.productionDate < variety.registrationDate) {
+        isValid = false;
+        trustLevel = TrustLevel.INVALID;
+        details = _append(details, "Batch produced before variety registration");
+    }
+
+    // --- 3) Coerenza temporale con emissione licenza ---
     if (batch.productionDate < license.issueDate) {
-      isValid = false;
-      message = "Batch produced before variety registration";
-      trustLevel = TrustLevel.LOW;
+        isValid = false;
+        trustLevel = TrustLevel.INVALID;
+        details = _append(details, "Batch produced before license issue");
+    }
 
-      //ritorna il risultato della verifica
-      return VerificationResult({
+    // --- 4) Gestione revoca licenza (errore o warning) ---
+    if (license.status == LicenseStatus.REVOKED) {
+        // Se revocationDate è 0 ma status è REVOKED -> stato incoerente: warning
+        if (license.revocationDate == 0) {
+            hasWarning = true;
+            details = _append(details, "WARNING: License is REVOKED but revocationDate is 0");
+        } else {
+            // Prodotto dopo o uguale alla revoca => invalido
+            if (batch.productionDate >= license.revocationDate) {
+                isValid = false;
+                trustLevel = TrustLevel.INVALID;
+                details = _append(details, "License revoked before batch production");
+            } else {
+                // Prodotto prima => warning
+                licenseRevokedAfterProduction = true;
+                hasWarning = true;
+                details = _append(details, "WARNING: License revoked after batch production");
+            }
+        }
+    }
+
+    // --- 5) Gestione scadenza licenza (errore o warning) ---
+    // fonte primaria: expiryDate (per evitare incoerenze con status)
+    bool licenseHasExpiry = (license.expiryDate != type(uint256).max);
+
+    if (licenseHasExpiry) {
+        // Se batch prodotto dopo la scadenza => invalido
+        if (batch.productionDate > license.expiryDate) {
+            isValid = false;
+            trustLevel = TrustLevel.INVALID;
+            details = _append(details, "License expired before batch production");
+        } else {
+            // Se la licenza è scaduta ora (ma batch è precedente) => warning
+            if (block.timestamp > license.expiryDate) {
+                hasWarning = true;
+                details = _append(details, "WARNING: License expired after batch production");
+            }
+        }
+    } else {
+        // licenza permanente: se status è EXPIRED è incoerente -> warning
+        if (license.status == LicenseStatus.EXPIRED) {
+            hasWarning = true;
+            details = _append(details, "WARNING: License marked EXPIRED but expiryDate is permanent");
+        }
+    }
+
+    // Se vuoi anche considerare status==EXPIRED come informazione:
+    // (senza invalidare automaticamente se expiryDate non lo dice)
+    if (license.status == LicenseStatus.EXPIRED && licenseHasExpiry && block.timestamp <= license.expiryDate) {
+        hasWarning = true;
+        details = _append(details, "WARNING: License marked EXPIRED but expiryDate is in the future");
+    }
+
+    // --- 6) Ispezione (alla fine) + TrustLevel ---
+    if (batch.inspectionStatus == InspectionStatus.REJECTED) {
+        details = _append(details, "Batch rejected by inspector");
+        isValid = false;
+
+        // se era già INVALID resta INVALID; altrimenti LOW (invalido “qualitativo”)
+        if (trustLevel != TrustLevel.INVALID) trustLevel = TrustLevel.LOW;
+
+    } else if (batch.inspectionStatus == InspectionStatus.APPROVED) {
+        if (isValid) {
+            // APPROVED + nessun warning => HIGH, altrimenti MEDIUM
+            trustLevel = hasWarning ? TrustLevel.MEDIUM : TrustLevel.HIGH;
+
+            if (bytes(details).length == 0) {
+                details = "Batch valid and approved by inspector";
+            } else {
+                details = _append(details, "Approved by inspector");
+            }
+        } else {
+            // non “salva” batch legalmente invalido
+            if (trustLevel != TrustLevel.INVALID) trustLevel = TrustLevel.LOW;
+        }
+
+    } else { // NOT_INSPECTED
+        details = _append(details, "Batch not yet inspected");
+
+        if (isValid) {
+            // valido ma non ispezionato => MEDIUM (anche se warning resta MEDIUM)
+            trustLevel = TrustLevel.MEDIUM;
+        } else {
+            if (trustLevel != TrustLevel.INVALID) trustLevel = TrustLevel.LOW;
+        }
+    }
+
+    // fallback raro
+    if (bytes(details).length == 0) {
+        details = isValid ? "Batch valid, no problems" : "Batch invalid";
+    }
+
+    return VerificationResult({
         isValid: isValid,
-        message: message,
+        message: details,
         variety: variety,
         license: license,
         batch: batch,
         breeder: variety.breeder,
         licenseRevokedAfterProduction: licenseRevokedAfterProduction,
         trustLevel: trustLevel
-      });
-    }
-
-    //3. Gestione licenza revocata (CRITICA)
-    if(license.status == LicenseStatus.REVOKED) {
-      if(batch.productionDate < license.revocationDate) {
-        isValid = true;
-        message = "Batch valid - License was revoked after batch production";
-        licenseRevokedAfterProduction = true;
-        trustLevel = TrustLevel.LOW;
-
-      } else {
-        isValid = false;
-        message = "License revoked before batch production";
-        trustLevel = TrustLevel.INVALID;
-
-        //ritorna il risultato della verifica
-        return VerificationResult({
-          isValid: isValid,
-          message: message,
-          variety: variety,
-          license: license,
-          batch: batch,
-          breeder: variety.breeder,
-          licenseRevokedAfterProduction: licenseRevokedAfterProduction,
-          trustLevel: trustLevel
-        });
-      }
-    }
-
-    //4. Verifica licenza attiva e non scaduta
-    if(block.timestamp > license.expiryDate) {
-      
-      //Controlla se prodotto prima della scadenza
-      if(batch.productionDate <= license.expiryDate) {
-        isValid = true;
-        message = "Batch valid - License expired after batch production";
-        trustLevel = TrustLevel.MEDIUM;
-      } else {
-        isValid = false;
-        message = "License expired before batch production";
-        trustLevel = TrustLevel.INVALID;
-
-        //ritorna il risultato della verifica
-        return VerificationResult({
-          isValid: isValid,
-          message: message,
-          variety: variety,
-          license: license,
-          batch: batch,
-          breeder: variety.breeder,
-          licenseRevokedAfterProduction: licenseRevokedAfterProduction,
-          trustLevel: trustLevel
-        });
-      }
-
-    }
-
-    //5. Se tutti i controlli passano, ritorna il risultato positivo
-    return VerificationResult({
-      isValid: isValid,
-      message: message,
-      variety: variety,
-      license: license,
-      batch: batch,
-      breeder: variety.breeder,
-      licenseRevokedAfterProduction: licenseRevokedAfterProduction,
-      trustLevel: trustLevel
     });
   }
+
 }
