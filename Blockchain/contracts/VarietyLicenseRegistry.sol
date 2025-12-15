@@ -73,10 +73,6 @@ contract VarietyLicenseRegistry {
   }
 
 
-
-
-
-
   /*
     =========EVENTI==========
   */
