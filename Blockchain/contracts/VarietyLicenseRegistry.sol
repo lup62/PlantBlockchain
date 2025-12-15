@@ -275,7 +275,7 @@ contract VarietyLicenseRegistry {
     uint256 _varietyID,
     address _licensee,
     uint256 _expirationDate
-  ) external onlyBreederOf(_varietyID) varietyExists(_varietyID) {
+  ) external varietyExists(_varietyID) onlyBreederOf(_varietyID)  {
     require(_licensee != authority, "Authority cannot be licensee");
     require(_licensee != msg.sender, "Cannot issue license to yourself");
     require(_licensee != address(0), "Licensee address cannot be zero");
@@ -439,7 +439,7 @@ contract VarietyLicenseRegistry {
     uint256 _licenseID,
     string memory _quantity,
     string memory _metadata
-  ) external onlyLicenseeOf(_licenseID) licenseExists(_licenseID) {
+  ) external licenseExists(_licenseID) onlyLicenseeOf(_licenseID)  {
     License storage license = licenses[_licenseID];
     require(license.status == LicenseStatus.ACTIVE, "License must be active to create a batch");
     require(license.expiryDate > block.timestamp, "License has expired");
