@@ -11,8 +11,9 @@ contract VarietyLicenseRegistry {
   uint256 private varietyCounter; //contatore delle varietà registrate
   uint256 private batchCounter;  //contatore dei batch registrati
   uint256 private licenseCounter; //contatore delle licenze emesse
-
   address private pendingAuthority; //indirizzo del nuovo indirizzo dell'Authority in caso di trasferimento
+  uint256[] private pendingBatchIDs; //array degli ID dei batch in attesa di ispezione
+
 
   //mappatura
   mapping (uint256 => Variety) private varieties; //mappatura delle varietà registrate
@@ -22,6 +23,7 @@ contract VarietyLicenseRegistry {
   mapping (uint256 => uint256[]) private varietyToLicenses; //mappatura delle licenze per ogni varietà [varietyID => array di licenseID]
   mapping (address => bool) private authorizedInspectors; //mappatura degli ispettori autorizzati
   mapping (string => bool) private registrationNumbers; //mappatura dei numeri di registrazione delle varietà per evitare duplicati
+  mapping(uint256 => uint256) private batchIdToPendingIndex; //mappatura per tracciare l'indice di un batch nell'array dei batch in pending
 
 
 
@@ -482,6 +484,10 @@ contract VarietyLicenseRegistry {
       inspectionDate: 0
     });
 
+    pendingBatchIDs.push(newBatchID); //aggiunge il batch all'array dei batch in pending
+    batchIdToPendingIndex[newBatchID] = pendingBatchIDs.length - 1; //traccia l'indice del batch nell'array dei batch in pending
+    
+
     emit BatchCreated(newBatchID, license.varietyID, msg.sender, block.timestamp);
   }
 
@@ -505,15 +511,34 @@ contract VarietyLicenseRegistry {
     ) external onlyInspector batchExists(_batchID) {
     Batch storage batch = batches[_batchID];
 
-    //aggiorna lo stato del batch in base all'ispezione
+    // 1. GESTIONE RIMOZIONE DALL'ARRAY PENDING (Solo se è la prima volta che viene ispezionato)
+    // Se inspectionStatus è NOT_INSPECTED, significa che è ancora nell'array pending.
+    if (batch.inspectionStatus == InspectionStatus.NOT_INSPECTED) {
+        
+        uint256 indexToRemove = batchIdToPendingIndex[_batchID];
+        uint256 lastIndex = pendingBatchIDs.length - 1;
+
+        // Se l'elemento da rimuovere non è l'ultimo, scambialo con l'ultimo
+        if (indexToRemove != lastIndex) {
+            uint256 lastBatchId = pendingBatchIDs[lastIndex];
+            
+            pendingBatchIDs[indexToRemove] = lastBatchId; // Sposta l'ultimo al posto di quello da rimuovere
+            batchIdToPendingIndex[lastBatchId] = indexToRemove; // Aggiorna l'indice nella mappa per il batch spostato
+        }
+
+        pendingBatchIDs.pop(); // Rimuovi l'ultimo elemento (che ora è un duplicato o quello target)
+        delete batchIdToPendingIndex[_batchID]; // Rimuovi il batch target dalla mappa
+    }
+
+    // 2. AGGIORNAMENTO STATO
     batch.inspector = msg.sender;
     batch.inspectionDate = block.timestamp;
 
     if (_approve) {
-      batch.inspectionStatus = InspectionStatus.APPROVED; //se approvato
+      batch.inspectionStatus = InspectionStatus.APPROVED;
       batch.status = BatchStatus.VALID;
     } else {
-      batch.inspectionStatus = InspectionStatus.REJECTED; //se rifiutato
+      batch.inspectionStatus = InspectionStatus.REJECTED;
       batch.status = BatchStatus.INVALIDATED;
     }
 
@@ -526,29 +551,16 @@ contract VarietyLicenseRegistry {
    @return Array di batch non ancora ispezionati
    */
   function getPendingBatches() external view onlyInspector returns (Batch[] memory) {
+    uint256 count = pendingBatchIDs.length;
+    Batch[] memory pendingList = new Batch[](count);
 
-    uint256 pendingCount = 0;
-    //conta i batch in pending
-    for (uint256 i = 1; i <= batchCounter; i++) {
-      if (batches[i].inspectionStatus == InspectionStatus.NOT_INSPECTED) {
-        pendingCount++;
-      }
+    for (uint256 i = 0; i < count; i++) {
+        uint256 batchId = pendingBatchIDs[i];
+        pendingList[i] = batches[batchId];
     }
 
-    //crea un array per i batch in pending
-    Batch[] memory pendingBatches = new Batch[](pendingCount);
-    uint256 index = 0;
-
-    //popola l'array con i batch in pending
-    for (uint256 i = 1; i <= batchCounter; i++) {
-      if (batches[i].inspectionStatus == InspectionStatus.NOT_INSPECTED) {
-        pendingBatches[index] = batches[i];
-        index++;
-      }
-    }
-
-    return pendingBatches;
-  }
+    return pendingList;
+}
 
   //++++Funzioni di lettura pubbliche VIEW (NON CONSUMA GAS)+++++
 
