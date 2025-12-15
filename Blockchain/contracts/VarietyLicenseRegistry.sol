@@ -288,20 +288,20 @@ contract VarietyLicenseRegistry {
     }
 
     // verifica che il licenziatario non abbia già una licenza attiva (non scaduta) per la stessa varietà
-  uint256[] storage existingLicenses = licenseeToLicenses[_licensee];
-  for (uint256 i = 0; i < existingLicenses.length; i++) {
-    License storage lic = licenses[existingLicenses[i]];
+    uint256[] storage existingLicenses = licenseeToLicenses[_licensee];
+    for (uint256 i = 0; i < existingLicenses.length; i++) {
+      License storage license = licenses[existingLicenses[i]];
 
-    bool sameVariety = (lic.varietyID == _varietyID);
-    bool notRevoked = (lic.status == LicenseStatus.ACTIVE);
+      bool sameVariety = (license.varietyID == _varietyID);
+      bool notRevoked = (license.status == LicenseStatus.ACTIVE);
 
-    // attiva se: permanente (max) oppure scade in futuro
-    bool notExpired = (lic.expiryDate == type(uint256).max) || (block.timestamp < lic.expiryDate);
+      // attiva se: permanente (max) oppure scade in futuro
+      bool notExpired = (license.expiryDate == type(uint256).max) || (block.timestamp < license.expiryDate);
 
-    if (sameVariety && notRevoked && notExpired) {
-        revert("Licensee already has an active license for this variety");
+      if (sameVariety && notRevoked && notExpired) {
+          revert("Licensee already has an active license for this variety");
+      }
     }
-  }
 
 
     //crea la nuova licenza
