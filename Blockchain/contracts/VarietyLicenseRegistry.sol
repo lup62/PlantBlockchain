@@ -274,8 +274,6 @@ contract VarietyLicenseRegistry {
       emit AuthorityChanged(authority, pendingAuthority, block.timestamp);
       authority = pendingAuthority;
       pendingAuthority = address(0);
-
-      emit AuthorityChanged(authority, pendingAuthority, block.timestamp);
   }
 
 
