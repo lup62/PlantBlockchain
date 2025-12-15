@@ -12,6 +12,8 @@ contract VarietyLicenseRegistry {
   uint256 private batchCounter;  //contatore dei batch registrati
   uint256 private licenseCounter; //contatore delle licenze emesse
 
+  address private pendingAuthority; //indirizzo del nuovo indirizzo dell'Authority in caso di trasferimento
+
   //mappatura
   mapping (uint256 => Variety) private varieties; //mappatura delle varietà registrate
   mapping (uint256 => Batch) private batches; //mappatura dei batch registrati
@@ -243,19 +245,26 @@ contract VarietyLicenseRegistry {
     emit InspectorRemoved(_inspector, block.timestamp);
   }
 
+  
   /**
-    @notice Cambia l'indirizzo dell'Authority; 
-    @dev !!ATTENZIONE!! Questa operazione è IRREVERSIBILE e fa perdere il controllo del contratto all'attuale Authority;
-    @param _newAuthority Nuovo indirizzo dell'Authority;
-  */
-  function changeAuthority(address _newAuthority) external onlyAuthority {
-    require(_newAuthority != address(0), "New authority address cannot be zero");
-    require(_newAuthority != authority, "New authority address must be different from the current one");
+   @notice Inizia il processo di trasferimento dell'Authority a un nuovo indirizzo;
+   @dev Questa funzione imposta un indirizzo "pending" che deve poi essere accettato dal nuovo indirizzo tramite la funzione acceptAuthority;
+   @param _newAuthority Nuovo indirizzo dell'Authority;
+   */
+  function beginAuthorityTransfer(address _newAuthority) external onlyAuthority {
+      require(_newAuthority != address(0), "Zero address");
+      pendingAuthority = _newAuthority;
+  }
 
-    address oldAuthority = authority;
-    authority = _newAuthority;
-    
-    emit AuthorityChanged(oldAuthority, _newAuthority, block.timestamp);
+  /**
+   @notice Accetta il trasferimento dell'Authority al nuovo indirizzo;
+   @dev Questa funzione deve essere chiamata dal nuovo indirizzo impostato come "pending" tramite la funzione beginAuthorityTransfer;
+   */
+  function acceptAuthority() external {
+      require(msg.sender == pendingAuthority, "Not pending authority");
+      emit AuthorityChanged(authority, pendingAuthority, block.timestamp);
+      authority = pendingAuthority;
+      pendingAuthority = address(0);
   }
 
 
