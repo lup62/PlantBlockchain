@@ -145,6 +145,12 @@ contract VarietyLicenseRegistry {
     uint256 inspectionDate
   );
 
+  event authorityTransferred(
+    address indexed oldAuthority,
+    address indexed newAuthority,
+    uint256 transferDate
+  );
+
 
 
 
@@ -255,6 +261,7 @@ contract VarietyLicenseRegistry {
    */
   function beginAuthorityTransfer(address _newAuthority) external onlyAuthority {
       require(_newAuthority != address(0), "Zero address");
+      require(_newAuthority != authority, "Same as current authority");
       pendingAuthority = _newAuthority;
   }
 
@@ -267,6 +274,8 @@ contract VarietyLicenseRegistry {
       emit AuthorityChanged(authority, pendingAuthority, block.timestamp);
       authority = pendingAuthority;
       pendingAuthority = address(0);
+
+      emit AuthorityChanged(authority, pendingAuthority, block.timestamp);
   }
 
 
@@ -818,12 +827,4 @@ contract VarietyLicenseRegistry {
 
     return result;
   }
-
-
-
-
-
-
-
-
 }
