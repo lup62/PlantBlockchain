@@ -287,14 +287,22 @@ contract VarietyLicenseRegistry {
       require(_expirationDate > block.timestamp, "Expiration date must be in the future");
     }
 
-    //verifca che il licenziatario non abbia già una licenza attiva per la stessa varietà
-    uint256[] storage existingLicenses = licenseeToLicenses[_licensee];
-    for (uint256 i = 0; i < existingLicenses.length; i++) {
-      License storage lic = licenses[existingLicenses[i]];
-      if (lic.varietyID == _varietyID && lic.status == LicenseStatus.ACTIVE) {
+    // verifica che il licenziatario non abbia già una licenza attiva (non scaduta) per la stessa varietà
+  uint256[] storage existingLicenses = licenseeToLicenses[_licensee];
+  for (uint256 i = 0; i < existingLicenses.length; i++) {
+    License storage lic = licenses[existingLicenses[i]];
+
+    bool sameVariety = (lic.varietyID == _varietyID);
+    bool notRevoked = (lic.status == LicenseStatus.ACTIVE);
+
+    // attiva se: permanente (max) oppure scade in futuro
+    bool notExpired = (lic.expiryDate == type(uint256).max) || (block.timestamp < lic.expiryDate);
+
+    if (sameVariety && notRevoked && notExpired) {
         revert("Licensee already has an active license for this variety");
-      }
     }
+  }
+
 
     //crea la nuova licenza
     licenseCounter++;
