@@ -450,7 +450,10 @@ contract VarietyLicenseRegistry {
   ) external licenseExists(_licenseID) onlyLicenseeOf(_licenseID)  {
     License storage license = licenses[_licenseID];
     require(license.status == LicenseStatus.ACTIVE, "License must be active to create a batch");
-    require(license.expiryDate > block.timestamp, "License has expired");
+    require(
+      license.expiryDate == type(uint256).max || license.expiryDate > block.timestamp,
+      "License has expired"
+    );
     require(bytes(_quantity).length > 0, "Quantity cannot be empty");
 
     batchCounter++; //incrementa il contatore dei batch
@@ -577,6 +580,14 @@ contract VarietyLicenseRegistry {
 
     TrustLevel trustLevel = TrustLevel.MEDIUM;
     string memory details = "";
+
+
+    // Sanity check: la licenza deve riferirsi alla stessa varietà del batch
+    if (license.varietyID != batch.varietyID) {
+      isValid = false;
+      trustLevel = TrustLevel.INVALID;
+      details = _append(details, "Inconsistent data: license does not match batch variety");
+    }
 
     // --- 1) Controlli "legali" sulla varietà ---
     if (variety.status != VarietyStatus.ACTIVE) {
