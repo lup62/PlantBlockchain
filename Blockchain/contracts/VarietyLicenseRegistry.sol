@@ -701,4 +701,108 @@ contract VarietyLicenseRegistry {
     });
   }
 
+  //+++++GETTERS BASE+++++
+
+  /**
+   @notice Recupera l'indirizzo dell'Authority;
+   @return address Indirizzo dell'Authority;
+   */
+  function getAuthority() external view returns (address) {
+    return authority;
+  }
+
+  /**
+    @notice Verifica se un ispettore è autorizzato;
+    @param _inspector Indirizzo dell'ispettore da verificare;
+   */
+  function isInspectorAuthorized(address _inspector) external view returns (bool) {
+    return authorizedInspectors[_inspector];
+  }
+
+  /**
+  @notice Recupera tutti i counter;
+  */
+  function getCounters() external view returns (uint256 varietiesCounter, uint256 batchesCounter, uint256 licensesCounter) {
+    return (varietyCounter, batchCounter, licenseCounter);
+  }
+
+  /**
+    @notice Recupera una varietà registrata dato il suo ID;
+    @param _varietyID ID della varietà da recuperare;
+   */
+  function getVariety(uint256 _varietyID) external view
+    varietyExists(_varietyID)
+    returns (Variety memory)
+  {
+    return varieties[_varietyID];
+  }
+
+  /**
+    @notice Recupera una licenza emessa dato il suo ID;
+    @param _licenseID ID della licenza da recuperare;
+   */
+  function getLicense(uint256 _licenseID) external view
+    licenseExists(_licenseID)
+    returns (License memory)
+  {
+    return licenses[_licenseID];
+  }
+
+  /**
+    @notice Recupera un batch di produzione dato il suo ID;
+    @param _batchID ID del batch da recuperare;
+   */
+  function getBatch(uint256 _batchID) external view
+    batchExists(_batchID)
+    returns (Batch memory)
+  {
+    return batches[_batchID];
+  }
+
+  /**
+  @notice Recupera tutte le licenze di un licenziatario (loggato);
+  @return Array di licenze possedute dal licenziatario;
+   */  
+  function getLicensesByLicensee() external view returns (License[] memory) {
+    uint256[] memory licenseIDs = licenseeToLicenses[msg.sender];
+    License[] memory result = new License[](licenseIDs.length);
+
+    for (uint256 i = 0; i < licenseIDs.length; i++) {
+      result[i] = licenses[licenseIDs[i]];
+    }
+
+    return result;
+  }
+
+
+  /**
+   @notice Recupera tutte le licenze associate a una varietà (solo breeder);
+   @param _varietyID ID della varietà di cui recuperare le licenze;
+   @return Array di licenze associate alla varietà;
+   */
+
+  function getLicensesByVariety(uint256 _varietyID)
+    external
+    view
+    varietyExists(_varietyID)
+    onlyBreederOf(_varietyID)
+    returns (License[] memory)
+  {
+    uint256[] memory licenseIDs = varietyToLicenses[_varietyID];
+    License[] memory result = new License[](licenseIDs.length);
+
+    for (uint256 i = 0; i < licenseIDs.length; i++) {
+      result[i] = licenses[licenseIDs[i]];
+    }
+
+    return result;
+  }
+
+
+
+
+
+
+
+
 }
