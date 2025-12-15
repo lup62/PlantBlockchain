@@ -742,6 +742,15 @@ contract VarietyLicenseRegistry {
   }
 
   /**
+   @notice Recupera l'indirizzo dell'Authority in pending (se in fase di trasferimento);
+   @return address Indirizzo dell'Authority in pending;
+   */
+  function getPendingAuthority() external view returns (address) {
+    return pendingAuthority;
+  }
+
+
+  /**
     @notice Verifica se un ispettore è autorizzato;
     @param _inspector Indirizzo dell'ispettore da verificare;
    */
