@@ -145,12 +145,6 @@ contract VarietyLicenseRegistry {
     uint256 inspectionDate
   );
 
-  event authorityTransferred(
-    address indexed oldAuthority,
-    address indexed newAuthority,
-    uint256 transferDate
-  );
-
 
 
 
