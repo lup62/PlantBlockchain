@@ -629,19 +629,6 @@ contract VarietyLicenseRegistry {
                 details = _append(details, "WARNING: License expired after batch production");
             }
         }
-    } else {
-        // licenza permanente: se status è EXPIRED è incoerente -> warning
-        if (license.status == LicenseStatus.EXPIRED) {
-            hasWarning = true;
-            details = _append(details, "WARNING: License marked EXPIRED but expiryDate is permanent");
-        }
-    }
-
-    // Se vuoi anche considerare status==EXPIRED come informazione:
-    // (senza invalidare automaticamente se expiryDate non lo dice)
-    if (license.status == LicenseStatus.EXPIRED && licenseHasExpiry && block.timestamp <= license.expiryDate) {
-        hasWarning = true;
-        details = _append(details, "WARNING: License marked EXPIRED but expiryDate is in the future");
     }
 
     // --- 6) Ispezione (alla fine) + TrustLevel ---
