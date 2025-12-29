@@ -1,209 +1,127 @@
 /**
- * IPFS SERVICE
+ * SERVER.JS - Backend Entry Point
  * 
- * Gestisce tutte le interazioni con Pinata/IPFS
- * Le API key sono SICURE qui, non esposte al frontend
+ * Questo file avvia il server Express e configura middleware
  */
 
-const pinataSDK = require('@pinata/sdk');
-const fs = require('fs');
+require('dotenv').config();
+const express = require('express');
+const cors = require('cors');
 const path = require('path');
 
-// Inizializza Pinata SDK
-const pinata = new pinataSDK(
-  process.env.PINATA_API_KEY,
-  process.env.PINATA_SECRET_API_KEY
-);
+// Import routes
+const ipfsRoutes = require('./routes/ipfs.routes');
+const healthRoutes = require('./routes/health.routes');
 
-/**
- * Testa la connessione a Pinata
- */
-async function testConnection() {
-  try {
-    const result = await pinata.testAuthentication();
-    console.log('✅ Pinata connection successful:', result);
-    return { success: true, message: 'Connected to Pinata' };
-  } catch (error) {
-    console.error('❌ Pinata connection failed:', error);
-    return { success: false, error: error.message };
-  }
-}
+// Inizializza Express app
+const app = express();
+const PORT = process.env.PORT || 3001;
 
-/**
- * Carica un file su IPFS
- * 
- * @param {string} filePath - Percorso del file locale
- * @param {object} options - Opzioni (name, metadata)
- * @returns {object} - { hash, url, size }
- */
-async function uploadFile(filePath, options = {}) {
-  try {
-    // Verifica che il file esista
-    if (!fs.existsSync(filePath)) {
-      throw new Error('File not found: ' + filePath);
+// ===================================
+// MIDDLEWARE
+// ===================================
+
+// CORS - Permetti richieste dal frontend
+app.use(cors({
+  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  credentials: true
+}));
+
+// Parse JSON bodies
+app.use(express.json({ limit: '10mb' }));
+
+// Parse URL-encoded bodies
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Logging middleware (semplice)
+app.use((req, res, next) => {
+  console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
+  next();
+});
+
+// Serve static files (se necessario)
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+
+// ===================================
+// ROUTES
+// ===================================
+
+// Health check
+app.use('/api/health', healthRoutes);
+
+// IPFS operations
+app.use('/api/ipfs', ipfsRoutes);
+
+// Root endpoint
+app.get('/', (req, res) => {
+  res.json({
+    message: '🌱 Variety License Registry - Backend API',
+    version: '1.0.0',
+    status: 'running',
+    endpoints: {
+      health: '/api/health',
+      ipfs: '/api/ipfs',
+      docs: '/api/docs'
     }
+  });
+});
 
-    // Crea readable stream
-    const readableStream = fs.createReadStream(filePath);
-    
-    // Opzioni per Pinata
-    const pinataOptions = {
-      pinataMetadata: {
-        name: options.name || path.basename(filePath),
-        keyvalues: options.metadata || {}
-      }
-    };
+// ===================================
+// ERROR HANDLING
+// ===================================
 
-    // Upload a Pinata
-    console.log('📤 Uploading file to IPFS...');
-    const result = await pinata.pinFileToIPFS(readableStream, pinataOptions);
-    
-    // Ottieni info file
-    const fileStats = fs.statSync(filePath);
-    
-    console.log('✅ File uploaded successfully:', result.IpfsHash);
+// 404 handler
+app.use((req, res) => {
+  res.status(404).json({
+    error: 'Not Found',
+    message: `Route ${req.path} not found`,
+    availableRoutes: [
+      '/api/health',
+      '/api/ipfs/upload',
+      '/api/ipfs/metadata'
+    ]
+  });
+});
 
-    return {
-      hash: result.IpfsHash,
-      url: `ipfs://${result.IpfsHash}`,
-      gatewayUrl: `${process.env.IPFS_GATEWAY}/ipfs/${result.IpfsHash}`,
-      size: fileStats.size,
-      timestamp: result.Timestamp
-    };
+// Global error handler
+app.use((err, req, res, next) => {
+  console.error('Error:', err);
+  
+  res.status(err.status || 500).json({
+    error: err.message || 'Internal Server Error',
+    ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
+  });
+});
 
-  } catch (error) {
-    console.error('❌ Error uploading file:', error);
-    throw new Error('Failed to upload file to IPFS: ' + error.message);
-  }
-}
+// ===================================
+// START SERVER
+// ===================================
 
-/**
- * Carica JSON metadata su IPFS
- * 
- * @param {object} jsonData - Dati JSON da caricare
- * @param {object} options - Opzioni (name)
- * @returns {object} - { hash, url }
- */
-async function uploadJSON(jsonData, options = {}) {
-  try {
-    // Valida che sia un oggetto
-    if (typeof jsonData !== 'object') {
-      throw new Error('jsonData must be an object');
-    }
+app.listen(PORT, () => {
+  console.log('\n✅ Backend server started successfully!');
+  console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
+  console.log(`🌐 Server running on: http://localhost:${PORT}`);
+  console.log(`🔐 Environment: ${process.env.NODE_ENV}`);
+  console.log(`🚀 Frontend URL: ${process.env.FRONTEND_URL}`);
+  console.log(`📦 IPFS Gateway: ${process.env.IPFS_GATEWAY}`);
+  console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`);
+  console.log('Available endpoints:');
+  console.log(`  GET  /api/health          - Health check`);
+  console.log(`  POST /api/ipfs/upload     - Upload file to IPFS`);
+  console.log(`  POST /api/ipfs/metadata   - Upload JSON metadata to IPFS`);
+  console.log(`  GET  /api/ipfs/:hash      - Get file info from IPFS`);
+  console.log('');
+});
 
-    // Opzioni per Pinata
-    const pinataOptions = {
-      pinataMetadata: {
-        name: options.name || `metadata-${Date.now()}.json`,
-        keyvalues: {
-          type: 'metadata',
-          createdAt: new Date().toISOString(),
-          ...options.metadata
-        }
-      }
-    };
+// Handle graceful shutdown
+process.on('SIGTERM', () => {
+  console.log('SIGTERM received, shutting down gracefully...');
+  process.exit(0);
+});
 
-    console.log('📤 Uploading JSON to IPFS...');
-    const result = await pinata.pinJSONToIPFS(jsonData, pinataOptions);
-    
-    console.log('✅ JSON uploaded successfully:', result.IpfsHash);
+process.on('SIGINT', () => {
+  console.log('\nSIGINT received, shutting down gracefully...');
+  process.exit(0);
+});
 
-    return {
-      hash: result.IpfsHash,
-      url: `ipfs://${result.IpfsHash}`,
-      gatewayUrl: `${process.env.IPFS_GATEWAY}/ipfs/${result.IpfsHash}`,
-      timestamp: result.Timestamp
-    };
-
-  } catch (error) {
-    console.error('❌ Error uploading JSON:', error);
-    throw new Error('Failed to upload JSON to IPFS: ' + error.message);
-  }
-}
-
-/**
- * Ottieni info su un file pinnato
- * 
- * @param {string} hash - IPFS hash
- * @returns {object} - File info
- */
-async function getFileInfo(hash) {
-  try {
-    const filters = {
-      hashContains: hash
-    };
-
-    const result = await pinata.pinList(filters);
-    
-    if (result.rows.length === 0) {
-      throw new Error('File not found on IPFS');
-    }
-
-    const fileInfo = result.rows[0];
-
-    return {
-      hash: fileInfo.ipfs_pin_hash,
-      size: fileInfo.size,
-      timestamp: fileInfo.date_pinned,
-      name: fileInfo.metadata?.name,
-      url: `ipfs://${fileInfo.ipfs_pin_hash}`,
-      gatewayUrl: `${process.env.IPFS_GATEWAY}/ipfs/${fileInfo.ipfs_pin_hash}`
-    };
-
-  } catch (error) {
-    console.error('❌ Error getting file info:', error);
-    throw new Error('Failed to get file info: ' + error.message);
-  }
-}
-
-/**
- * Unpinna un file da IPFS (rimuove)
- * 
- * @param {string} hash - IPFS hash
- * @returns {boolean} - Success
- */
-async function unpinFile(hash) {
-  try {
-    await pinata.unpin(hash);
-    console.log('✅ File unpinned:', hash);
-    return true;
-  } catch (error) {
-    console.error('❌ Error unpinning file:', error);
-    throw new Error('Failed to unpin file: ' + error.message);
-  }
-}
-
-/**
- * Lista tutti i file pinnati (con filtri opzionali)
- * 
- * @param {object} filters - Filtri Pinata
- * @returns {array} - Lista file
- */
-async function listFiles(filters = {}) {
-  try {
-    const result = await pinata.pinList(filters);
-    
-    return result.rows.map(file => ({
-      hash: file.ipfs_pin_hash,
-      size: file.size,
-      timestamp: file.date_pinned,
-      name: file.metadata?.name,
-      url: `ipfs://${file.ipfs_pin_hash}`,
-      gatewayUrl: `${process.env.IPFS_GATEWAY}/ipfs/${file.ipfs_pin_hash}`
-    }));
-
-  } catch (error) {
-    console.error('❌ Error listing files:', error);
-    throw new Error('Failed to list files: ' + error.message);
-  }
-}
-
-// Export tutte le funzioni
-module.exports = {
-  testConnection,
-  uploadFile,
-  uploadJSON,
-  getFileInfo,
-  unpinFile,
-  listFiles
-};
+module.exports = app;
