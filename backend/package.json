@@ -1,0 +1,33 @@
+{
+  "name": "variety-registry-backend",
+  "version": "1.0.0",
+  "description": "Backend API for Variety License Registry - IPFS integration",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "blockchain",
+    "ipfs",
+    "variety",
+    "agriculture"
+  ],
+  "author": "Oronzo Franchini, Giovanni Pastore, Pasquale Lorusso",
+  "license": "UNLICENSED",
+  "dependencies": {
+    "@pinata/sdk": "^2.1.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.6.1",
+    "express": "^4.22.1",
+    "express-validator": "^7.3.1",
+    "multer": "^1.4.5-lts.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.11"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  }
+}
