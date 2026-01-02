@@ -1,35 +1,35 @@
 /**
  * WEB3 CONTEXT
- * 
  * Gestisce connessione wallet, contratto e stato globale
  */
 
 import { createContext, useContext, useState, useEffect } from 'react';
 import { ethers } from 'ethers';
-import { CONTRACT_ADDRESS, DEFAULT_CHAIN_ID } from '../utils/config';
+import { CONTRACT_ADDRESS } from '../utils/config';
 import { CONTRACT_ABI } from '../utils/contractABI';
 
 const Web3Context = createContext();
 
 export function Web3Provider({ children }) {
-    // Stato wallet
+    // 1. All Hooks properly at the top
     const [account, setAccount] = useState(null);
     const [chainId, setChainId] = useState(null);
     const [provider, setProvider] = useState(null);
     const [signer, setSigner] = useState(null);
     const [contract, setContract] = useState(null);
 
-    // Stato UI
     const [isConnecting, setIsConnecting] = useState(false);
     const [error, setError] = useState(null);
 
-    // Stato blockchain
+    // Permission States
     const [isAuthority, setIsAuthority] = useState(false);
     const [isInspector, setIsInspector] = useState(false);
+    const [authorityAddress, setAuthorityAddress] = useState(null); // Added this
+
     const [counters, setCounters] = useState({ varieties: 0, batches: 0, licenses: 0 });
 
     /**
-     * Connetti MetaMask
+     * Connect Wallet Function
      */
     async function connectWallet() {
         if (!window.ethereum) {
@@ -41,32 +41,26 @@ export function Web3Provider({ children }) {
             setIsConnecting(true);
             setError(null);
 
-            // Richiedi account
             const accounts = await window.ethereum.request({
                 method: 'eth_requestAccounts'
             });
 
-            // Setup provider e signer
             const provider = new ethers.BrowserProvider(window.ethereum);
             const signer = await provider.getSigner();
             const address = await signer.getAddress();
             const network = await provider.getNetwork();
 
-            // Setup contratto
             const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
 
-            // Aggiorna stato
             setProvider(provider);
             setSigner(signer);
             setAccount(address);
             setChainId(Number(network.chainId));
             setContract(contract);
 
-            // Carica info utente
             await loadUserInfo(contract, address);
 
             console.log('✅ Wallet connesso:', address);
-            console.log('📄 Contratto:', CONTRACT_ADDRESS);
 
         } catch (err) {
             console.error('Errore connessione:', err);
@@ -77,19 +71,22 @@ export function Web3Provider({ children }) {
     }
 
     /**
-     * Carica informazioni utente
+     * Load User Info
      */
     async function loadUserInfo(contract, address) {
         try {
-            // Verifica se è authority
+            // Get Authority
             const authority = await contract.getAuthority();
-            setIsAuthority(authority.toLowerCase() === address.toLowerCase());
+            setAuthorityAddress(authority);
 
-            // Verifica se è inspector
+            const isAuth = authority.toLowerCase() === address.toLowerCase();
+            setIsAuthority(isAuth);
+
+            // Get Inspector Status
             const inspector = await contract.isInspectorAuthorized(address);
             setIsInspector(inspector);
 
-            // Carica contatori
+            // Get Counters
             const counts = await contract.getCounters();
             setCounters({
                 varieties: Number(counts.varietiesCounter),
@@ -97,19 +94,26 @@ export function Web3Provider({ children }) {
                 licenses: Number(counts.licensesCounter)
             });
 
+            console.log("--- AUTH CHECK ---");
+            console.log("Me:", address);
+            console.log("Auth:", authority);
+            console.log("Match:", isAuth);
+
         } catch (err) {
             console.error('Errore caricamento info:', err);
+            setAuthorityAddress('Error: ' + (err.reason || err.message) + ' (Target: ' + CONTRACT_ADDRESS + ')');
         }
     }
 
     /**
-     * Disconnetti wallet
+     * Disconnect
      */
     function disconnectWallet() {
         setAccount(null);
         setProvider(null);
         setSigner(null);
         setContract(null);
+        setAuthorityAddress(null);
         setIsAuthority(false);
         setIsInspector(false);
         setError(null);
@@ -117,7 +121,7 @@ export function Web3Provider({ children }) {
     }
 
     /**
-     * Ricarica dati dal contratto
+     * Refresh
      */
     async function refreshData() {
         if (contract && account) {
@@ -125,22 +129,7 @@ export function Web3Provider({ children }) {
         }
     }
 
-    /**
-     * Switch network
-     */
-    async function switchNetwork(targetChainId) {
-        try {
-            await window.ethereum.request({
-                method: 'wallet_switchEthereumChain',
-                params: [{ chainId: `0x${targetChainId.toString(16)}` }],
-            });
-        } catch (err) {
-            console.error('Errore switch network:', err);
-            throw err;
-        }
-    }
-
-    // Listener per cambio account
+    // Effect: Account Changed
     useEffect(() => {
         if (!window.ethereum) return;
 
@@ -148,7 +137,8 @@ export function Web3Provider({ children }) {
             if (accounts.length === 0) {
                 disconnectWallet();
             } else if (accounts[0] !== account) {
-                connectWallet();
+                // Auto-reconnect with new account
+                window.location.reload();
             }
         }
 
@@ -165,11 +155,10 @@ export function Web3Provider({ children }) {
         };
     }, [account]);
 
-    // Auto-connect se già autorizzato
+    // Effect: Auto Connect
     useEffect(() => {
         async function checkConnection() {
             if (!window.ethereum) return;
-
             try {
                 const accounts = await window.ethereum.request({
                     method: 'eth_accounts'
@@ -186,32 +175,22 @@ export function Web3Provider({ children }) {
         checkConnection();
     }, []);
 
-    // Context value
     const value = {
-        // Wallet
         account,
         chainId,
         provider,
         signer,
         contract,
         isConnected: !!account,
-
-        // Ruoli
         isAuthority,
+        authorityAddress, // EXPORTED
         isInspector,
-
-        // Dati
         counters,
-
-        // Stati
         isConnecting,
         error,
-
-        // Funzioni
         connectWallet,
         disconnectWallet,
-        refreshData,
-        switchNetwork
+        refreshData
     };
 
     return (
@@ -221,7 +200,6 @@ export function Web3Provider({ children }) {
     );
 }
 
-// Hook per usare il context
 export function useWeb3() {
     const context = useContext(Web3Context);
     if (!context) {
