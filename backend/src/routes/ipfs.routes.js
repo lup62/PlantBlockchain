@@ -77,8 +77,27 @@ function cleanupTempFile(filePath) {
 }
 
 // ===================================
+// AUTHENTICATION MIDDLEWARE
+// ===================================
+const authenticate = (req, res, next) => {
+  const apiKey = req.header('X-API-KEY');
+  const secretToken = process.env.API_SECRET_TOKEN;
+
+  if (!secretToken || apiKey !== secretToken) {
+    return res.status(401).json({
+      error: 'Unauthorized',
+      message: 'Invalid or missing API Key'
+    });
+  }
+  next();
+};
+
+// ===================================
 // ROUTES
 // ===================================
+
+// Applica middleware di autenticazione a tutte le rotte seguenti
+router.use(authenticate);
 
 /**
  * POST /api/ipfs/upload
@@ -134,7 +153,7 @@ router.post('/upload', upload.single('file'), async (req, res) => {
 
   } catch (error) {
     console.error('Error in /upload:', error);
-    
+
     // Cleanup in caso di errore
     if (tempFilePath) {
       cleanupTempFile(tempFilePath);
@@ -190,7 +209,7 @@ router.post('/metadata', [
 
   } catch (error) {
     console.error('Error in /metadata:', error);
-    
+
     res.status(500).json({
       error: 'Upload failed',
       message: error.message
@@ -227,7 +246,7 @@ router.get('/:hash', async (req, res) => {
 
   } catch (error) {
     console.error('Error in /get:', error);
-    
+
     res.status(404).json({
       error: 'Not found',
       message: error.message
@@ -265,7 +284,7 @@ router.delete('/:hash', async (req, res) => {
 
   } catch (error) {
     console.error('Error in /delete:', error);
-    
+
     res.status(500).json({
       error: 'Unpin failed',
       message: error.message
@@ -302,7 +321,7 @@ router.get('/', async (req, res) => {
 
   } catch (error) {
     console.error('Error in /list:', error);
-    
+
     res.status(500).json({
       error: 'List failed',
       message: error.message
