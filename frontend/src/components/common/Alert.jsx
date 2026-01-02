@@ -1,6 +1,5 @@
 /**
- * ALERT COMPONENT - Professional Edition
- * Clean, standard alert messages
+ * ALERT COMPONENT
  */
 
 import { useState } from 'react';
@@ -84,7 +83,7 @@ export default function Alert({ type = 'info', title, message, onClose, classNam
     );
 }
 
-// Toast notification component (simplified)
+// Toast notification component
 export function Toast({ message, type = 'success', onClose }) {
     return (
         <div className="fixed bottom-4 right-4 z-50 animate-in slide-in-from-bottom-5 fade-in duration-300">
