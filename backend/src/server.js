@@ -86,7 +86,7 @@ app.use((req, res) => {
 // Global error handler
 app.use((err, req, res, next) => {
   console.error('Error:', err);
-  
+
   res.status(err.status || 500).json({
     error: err.message || 'Internal Server Error',
     ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
@@ -101,9 +101,9 @@ app.listen(PORT, () => {
   console.log('\n✅ Backend server started successfully!');
   console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
   console.log(`🌐 Server running on: http://localhost:${PORT}`);
-  console.log(`🔐 Environment: ${process.env.NODE_ENV}`);
-  console.log(`🚀 Frontend URL: ${process.env.FRONTEND_URL}`);
-  console.log(`📦 IPFS Gateway: ${process.env.IPFS_GATEWAY}`);
+  console.log(`🔐 Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`🚀 Frontend URL: ${process.env.FRONTEND_URL || 'http://localhost:5173'}`);
+  console.log(`📦 IPFS Gateway: ${process.env.IPFS_GATEWAY || 'https://gateway.pinata.cloud'}`);
   console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`);
   console.log('Available endpoints:');
   console.log(`  GET  /api/health          - Health check`);
