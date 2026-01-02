@@ -1,216 +1,138 @@
 /**
- * LAYOUT COMPONENT
- * 
- * Layout principale con Navbar
+ * TOTAL LAYOUT REWRITE: Floating Dock Design
  */
-
 import { Link, useLocation } from 'react-router-dom';
 import {
-    Home, Building2, Sprout, Users, ClipboardCheck,
-    Search, Menu, X, Wallet, LogOut
+    Home, Search, ShieldCheck, Sprout,
+    Hexagon, Users, Wallet, LogOut, Menu, X
 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useWeb3 } from '../contexts/Web3Context';
 import Button from './common/Button';
 
 export default function Layout({ children }) {
-    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-    const { account, isConnected, isAuthority, isInspector, connectWallet, disconnectWallet } = useWeb3();
+    const { isConnected, account, connectWallet, disconnectWallet } = useWeb3();
     const location = useLocation();
+    const [scrolled, setScrolled] = useState(false);
+    const [mobileOpen, setMobileOpen] = useState(false);
 
-    // Navigation items
-    const navItems = [
-        { path: '/', label: 'Home', icon: <Home className="w-4 h-4" /> },
-        { path: '/verify', label: 'Verifica', icon: <Search className="w-4 h-4" /> },
-        ...(isAuthority ? [{ path: '/authority', label: 'Authority', icon: <Building2 className="w-4 h-4" /> }] : []),
-        ...(isConnected ? [
-            { path: '/breeder', label: 'Breeder', icon: <Sprout className="w-4 h-4" /> },
-            { path: '/licensee', label: 'Licensee', icon: <Users className="w-4 h-4" /> }
-        ] : []),
-        ...(isInspector ? [{ path: '/inspector', label: 'Inspector', icon: <ClipboardCheck className="w-4 h-4" /> }] : [])
+    // Scroll effect for navbar background
+    useEffect(() => {
+        const handleScroll = () => setScrolled(window.scrollY > 20);
+        window.addEventListener('scroll', handleScroll);
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, []);
+
+    const navLinks = [
+        { path: '/', label: 'Home', icon: <Home size={18} /> },
+        { path: '/verify', label: 'Verify', icon: <Search size={18} /> },
+        { path: '/authority', label: 'Authority', icon: <ShieldCheck size={18} /> },
+        { path: '/breeder', label: 'Breeder', icon: <Sprout size={18} /> },
+        { path: '/licensee', label: 'Licensee', icon: <Users size={18} /> },
+        { path: '/inspector', label: 'Inspector', icon: <ShieldCheck size={18} /> },
     ];
 
-    const isActive = (path) => location.pathname === path;
-
     return (
-        <div className="min-h-screen bg-gradient-to-br from-green-50 via-blue-50 to-purple-50">
-            {/* NAVBAR */}
-            <nav className="bg-white/80 backdrop-blur-lg shadow-lg sticky top-0 z-40 border-b border-gray-200">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex justify-between items-center h-16">
+        <div className="min-h-screen flex flex-col relative selection:bg-green-500/30 selection:text-green-200">
 
-                        {/* Logo */}
-                        <Link to="/" className="flex items-center space-x-2">
-                            <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-blue-500 rounded-lg flex items-center justify-center">
-                                <Sprout className="w-6 h-6 text-white" />
-                            </div>
-                            <span className="text-xl font-bold bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent">
-                                Variety Registry
-                            </span>
-                        </Link>
+            {/* FLOATING NAVBAR */}
+            <header className={`
+                fixed top-0 left-0 right-0 z-50 transition-all duration-300
+                flex justify-center pt-6 px-4
+            `}>
+                <div className={`
+                    w-full max-w-5xl rounded-2xl flex items-center justify-between px-6 py-3
+                    transition-all duration-500 border
+                    ${scrolled
+                        ? 'bg-[#020402]/80 backdrop-blur-xl border-white/10 shadow-2xl'
+                        : 'bg-transparent border-transparent'
+                    }
+                `}>
+                    {/* Logo Area */}
+                    <Link to="/" className="flex items-center gap-2 group">
+                        <div className="relative w-8 h-8 flex items-center justify-center bg-white/5 rounded-lg border border-white/10 group-hover:border-green-400/50 transition-all">
+                            <Hexagon className="w-5 h-5 text-green-400 animate-pulse-slow" />
+                        </div>
+                        <span className="font-display font-bold text-xl tracking-tight text-white group-hover:text-green-400 transition-colors">
+                            Plant<span className="font-light text-gray-400">Chain</span>
+                        </span>
+                    </Link>
 
-                        {/* Desktop Navigation */}
-                        <div className="hidden md:flex items-center space-x-1">
-                            {navItems.map((item) => (
+                    {/* Desktop Nav - Centered Pills */}
+                    <nav className="hidden md:flex items-center gap-1 bg-white/5 p-1 rounded-full border border-white/5 backdrop-blur-md">
+                        {navLinks.map(link => {
+                            const active = location.pathname === link.path;
+                            return (
                                 <Link
-                                    key={item.path}
-                                    to={item.path}
+                                    key={link.path}
+                                    to={link.path}
                                     className={`
-                    px-4 py-2 rounded-lg flex items-center gap-2 transition-all
-                    ${isActive(item.path)
-                                            ? 'bg-gradient-to-r from-green-600 to-blue-600 text-white shadow-lg'
-                                            : 'text-gray-700 hover:bg-gray-100'
+                                        px-5 py-2 rounded-full text-sm font-medium transition-all duration-300 flex items-center gap-2
+                                        ${active
+                                            ? 'bg-green-500 text-black shadow-[0_0_15px_rgba(0,255,157,0.3)]'
+                                            : 'text-gray-400 hover:text-white hover:bg-white/5'
                                         }
-                  `}
+                                    `}
                                 >
-                                    {item.icon}
-                                    <span className="font-medium">{item.label}</span>
+                                    {link.icon}
+                                    {link.label}
                                 </Link>
-                            ))}
-                        </div>
+                            )
+                        })}
+                    </nav>
 
-                        {/* Wallet Button */}
-                        <div className="hidden md:flex items-center gap-3">
-                            {!isConnected ? (
-                                <Button onClick={connectWallet} size="sm" icon={<Wallet className="w-4 h-4" />}>
-                                    Connetti Wallet
-                                </Button>
-                            ) : (
-                                <div className="flex items-center gap-2">
-                                    <div className="px-3 py-1.5 bg-green-100 rounded-lg">
-                                        <p className="text-sm font-mono text-green-800">
-                                            {account.slice(0, 6)}...{account.slice(-4)}
-                                        </p>
-                                    </div>
-                                    <Button
-                                        onClick={disconnectWallet}
-                                        variant="ghost"
-                                        size="sm"
-                                        icon={<LogOut className="w-4 h-4" />}
-                                    />
+                    {/* Wallet Action */}
+                    <div className="hidden md:flex items-center gap-3">
+                        {!isConnected ? (
+                            <Button onClick={connectWallet} variant="primary" size="sm" icon={<Wallet size={16} />}>
+                                Connect
+                            </Button>
+                        ) : (
+                            <div className="flex items-center gap-3 pl-4 border-l border-white/10">
+                                <div className="text-right hidden lg:block">
+                                    <div className="text-[10px] text-green-400 font-mono tracking-wider">ONLINE</div>
+                                    <div className="text-xs font-mono text-gray-400">{account.slice(0, 6)}...{account.slice(-4)}</div>
                                 </div>
-                            )}
+                                <button
+                                    onClick={disconnectWallet}
+                                    className="p-2 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500/20 transition-colors"
+                                >
+                                    <LogOut size={16} />
+                                </button>
+                            </div>
+                        )}
+                    </div>
 
-                            {/* Role badges */}
-                            {isAuthority && (
-                                <span className="px-2 py-1 bg-purple-100 text-purple-700 text-xs font-semibold rounded">
-                                    Authority
-                                </span>
-                            )}
-                            {isInspector && (
-                                <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs font-semibold rounded">
-                                    Inspector
-                                </span>
-                            )}
-                        </div>
+                    {/* Mobile Toggle */}
+                    <button className="md:hidden text-white" onClick={() => setMobileOpen(!mobileOpen)}>
+                        {mobileOpen ? <X /> : <Menu />}
+                    </button>
+                </div>
+            </header>
 
-                        {/* Mobile menu button */}
-                        <button
-                            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                            className="md:hidden p-2 rounded-lg hover:bg-gray-100"
-                        >
-                            {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-                        </button>
+            {/* Mobile Menu Overlay */}
+            {mobileOpen && (
+                <div className="fixed inset-0 z-40 bg-black/95 backdrop-blur-xl pt-24 px-6 md:hidden">
+                    <div className="flex flex-col gap-4">
+                        {navLinks.map(link => (
+                            <Link
+                                key={link.path}
+                                to={link.path}
+                                onClick={() => setMobileOpen(false)}
+                                className="text-2xl font-display font-bold text-white py-4 border-b border-white/10"
+                            >
+                                {link.label}
+                            </Link>
+                        ))}
                     </div>
                 </div>
+            )}
 
-                {/* Mobile Navigation */}
-                {mobileMenuOpen && (
-                    <div className="md:hidden border-t border-gray-200 bg-white">
-                        <div className="px-4 py-2 space-y-1">
-                            {navItems.map((item) => (
-                                <Link
-                                    key={item.path}
-                                    to={item.path}
-                                    onClick={() => setMobileMenuOpen(false)}
-                                    className={`
-                    block px-4 py-3 rounded-lg flex items-center gap-2
-                    ${isActive(item.path)
-                                            ? 'bg-gradient-to-r from-green-600 to-blue-600 text-white'
-                                            : 'text-gray-700 hover:bg-gray-100'
-                                        }
-                  `}
-                                >
-                                    {item.icon}
-                                    <span className="font-medium">{item.label}</span>
-                                </Link>
-                            ))}
-
-                            <div className="pt-2 border-t border-gray-200">
-                                {!isConnected ? (
-                                    <Button
-                                        onClick={connectWallet}
-                                        className="w-full"
-                                        icon={<Wallet className="w-4 h-4" />}
-                                    >
-                                        Connetti Wallet
-                                    </Button>
-                                ) : (
-                                    <>
-                                        <div className="px-4 py-2 bg-green-50 rounded-lg mb-2">
-                                            <p className="text-sm text-gray-600">Connesso</p>
-                                            <p className="text-sm font-mono text-green-800">
-                                                {account.slice(0, 10)}...{account.slice(-8)}
-                                            </p>
-                                        </div>
-                                        <Button
-                                            onClick={disconnectWallet}
-                                            variant="ghost"
-                                            className="w-full"
-                                            icon={<LogOut className="w-4 h-4" />}
-                                        >
-                                            Disconnetti
-                                        </Button>
-                                    </>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-                )}
-            </nav>
-
-            {/* MAIN CONTENT */}
-            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            {/* MAIN CONTENT AREA */}
+            <main className="flex-grow pt-32 px-4 md:px-6 relative z-10 w-full max-w-7xl mx-auto">
                 {children}
             </main>
 
-            {/* FOOTER */}
-            <footer className="bg-white/80 backdrop-blur-lg border-t border-gray-200 mt-20">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                        <div>
-                            <h3 className="font-bold text-gray-900 mb-3">Variety Registry</h3>
-                            <p className="text-sm text-gray-600">
-                                Sistema blockchain per la tracciabilità di varietà vegetali protette
-                            </p>
-                        </div>
-
-                        <div>
-                            <h3 className="font-bold text-gray-900 mb-3">Links</h3>
-                            <ul className="space-y-2 text-sm text-gray-600">
-                                <li><Link to="/" className="hover:text-green-600">Home</Link></li>
-                                <li><Link to="/verify" className="hover:text-green-600">Verifica Batch</Link></li>
-                                <li><a href="#" className="hover:text-green-600">Documentazione</a></li>
-                                <li><a href="#" className="hover:text-green-600">GitHub</a></li>
-                            </ul>
-                        </div>
-
-                        <div>
-                            <h3 className="font-bold text-gray-900 mb-3">Contatti</h3>
-                            <p className="text-sm text-gray-600">
-                                Email: info@varietyregistry.com
-                            </p>
-                            <p className="text-sm text-gray-600 mt-2">
-                                Supporto: support@varietyregistry.com
-                            </p>
-                        </div>
-                    </div>
-
-                    <div className="border-t border-gray-200 mt-8 pt-8 text-center text-sm text-gray-600">
-                        <p>© 2024 Variety Registry. Made with ❤️ for transparent food supply chain.</p>
-                    </div>
-                </div>
-            </footer>
         </div>
     );
 }
