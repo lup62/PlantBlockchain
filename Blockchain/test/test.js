@@ -10,6 +10,8 @@ describe("VarietyLicenseRegistry High Coverage Test Suite", function () {
     const REG_NUM = "REG-123456";
     const DOC_HASH = "QmXoypizj2WkeBvYtUAcU34f6/327382743284723";
     const DOC_URI = "https://gateway.pinata.cloud/ipfs/QmXoypizj2WkeBvYtUAcU34f6";
+    const abiCoder = ethers.AbiCoder.defaultAbiCoder();
+    const mappingSlot = (key, slot) => ethers.keccak256(abiCoder.encode(["uint256", "uint256"], [key, slot]));
 
     beforeEach(async function () {
         [owner, breeder, licensee, inspector, other] = await ethers.getSigners();
@@ -225,7 +227,22 @@ describe("VarietyLicenseRegistry High Coverage Test Suite", function () {
         });
 
         it("INVALID: Consistent mismatch check", async function () {
-            // This hits the sanity check where license.varietyID != batch.varietyID (rare but covered)
+            await registry.connect(licensee).createBatch(1, "10kg", "M");
+
+            // Manually corrupt storage to simulate inconsistent data: set license[1].varietyID = 2
+            // license mapping slot index is 8 (after primitive vars, array and previous mappings)
+            const baseSlot = mappingSlot(1n, 8n); // license[1] base slot
+            const varietyIdSlot = BigInt(baseSlot) + 1n; // offset +1 dentro la struct License
+            await ethers.provider.send("hardhat_setStorageAt", [
+                registry.target,
+                ethers.zeroPadValue(ethers.toBeHex(varietyIdSlot), 32),
+                ethers.zeroPadValue(ethers.toBeHex(2), 32)
+            ]);
+
+            const res = await registry.verifyBatch(1);
+            expect(res.trustLevel).to.equal(0); // INVALID
+            expect(res.isValid).to.be.false;
+            expect(res.message).to.contain("license does not match batch variety");
         });
     });
 
