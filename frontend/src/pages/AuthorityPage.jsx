@@ -1,5 +1,5 @@
 /**
- * AUTHORITY PAGE - ORGANIC TECH STYLE
+ * AUTHORITY PAGE
  * FULLY IMPLEMENTED: Register, Revoke, Add Inspector, Remove Inspector
  */
 
