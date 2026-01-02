@@ -1,0 +1,49 @@
+version: "3.9"
+
+services:
+  blockchain:
+    image: node:18
+    working_dir: /app/Blockchain
+    volumes:
+      - ./:/app
+    command: sh -c "npm install && npx hardhat node"
+    ports:
+      - "8545:8545"
+    networks:
+      - plantnet
+
+  backend:
+    build: ./backend
+    environment:
+      PORT: 3001
+      FRONTEND_URL: http://localhost:4173
+      API_SECRET_TOKEN: devtoken
+      IPFS_GATEWAY: https://ipfs.io
+    depends_on:
+      - blockchain
+    ports:
+      - "3001:3001"
+    networks:
+      - plantnet
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_API_URL: http://backend:3001
+        VITE_RPC_URL: http://blockchain:8545
+        VITE_CHAIN_ID: 31337
+        VITE_IPFS_GATEWAY: https://ipfs.io/ipfs/
+    environment:
+      VITE_E2E_MOCK: "false"
+    depends_on:
+      - backend
+      - blockchain
+    ports:
+      - "4173:4173"
+    networks:
+      - plantnet
+
+networks:
+  plantnet:
+    driver: bridge
