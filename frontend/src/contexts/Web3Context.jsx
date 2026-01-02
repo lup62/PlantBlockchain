@@ -8,6 +8,49 @@ import { ethers } from 'ethers';
 import { CONTRACT_ADDRESS } from '../utils/config';
 import { CONTRACT_ABI } from '../utils/contractABI';
 
+const IS_E2E_MOCK = import.meta.env.VITE_E2E_MOCK === 'true';
+
+function createMockContract() {
+    const now = Math.floor(Date.now() / 1000);
+    return {
+        verifyBatch: async (id) => ({
+            isValid: true,
+            message: 'Mock verification success',
+            trustLevel: 3,
+            variety: {
+                denomination: 'Mock Variety',
+                registrationNumber: 'REG-000',
+                breeder: '0x0000000000000000000000000000000000000001',
+                status: 0,
+                documentHash: '',
+                documentURI: ''
+            },
+            license: {
+                licensee: '0x0000000000000000000000000000000000000002',
+                expiryDate: BigInt(now + 365 * 24 * 3600)
+            },
+            batch: {
+                batchID: BigInt(id || 1),
+                licenseID: 1,
+                varietyID: 1,
+                productionDate: BigInt(now - 3600),
+                quantity: '10kg',
+                metadata: 'mock data',
+                inspectionStatus: 1
+            },
+            breeder: '0x0000000000000000000000000000000000000001',
+            licenseRevokedAfterProduction: false
+        }),
+        getAuthority: async () => '0x0000000000000000000000000000000000000000',
+        isInspectorAuthorized: async () => false,
+        getCounters: async () => ({
+            varietiesCounter: 0n,
+            batchesCounter: 0n,
+            licensesCounter: 0n
+        })
+    };
+}
+
 const Web3Context = createContext();
 
 export function Web3Provider({ children }) {
@@ -31,7 +74,15 @@ export function Web3Provider({ children }) {
     // 2. Initialize Read-Only Contract automatically
     useEffect(() => {
         if (!contract) {
-            setupReadOnly();
+            if (IS_E2E_MOCK) {
+                const mock = createMockContract();
+                setContract(mock);
+                setProvider(null);
+                loadUserInfo(mock, null);
+                console.log("E2E Mock Mode Active");
+            } else {
+                setupReadOnly();
+            }
         }
     }, [contract]);
 
