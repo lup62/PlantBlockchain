@@ -1,56 +1,47 @@
 /**
- * CARD COMPONENT
- * 
- * Container card riutilizzabile con varianti
+ * REWRITTEN CARD COMPONENT
+ * Style: GlassBento
  */
 
 export default function Card({
     children,
     title,
     subtitle,
-    icon,
-    footer,
-    variant = 'default',
+    icon, // Lucide icon component
     className = '',
-    padding = true,
-    hover = false
+    noPadding = false,
+    spotlight = false // Upcoming feature: mouse spotlight
 }) {
-
-    const variants = {
-        default: 'bg-white shadow-md',
-        glass: 'bg-white/80 backdrop-blur-lg shadow-xl border border-white/20',
-        gradient: 'bg-gradient-to-br from-green-50 to-blue-50 shadow-lg',
-        outlined: 'bg-white border-2 border-gray-200'
-    };
-
-    const hoverEffect = hover ? 'hover:shadow-xl hover:scale-[1.02] transition-all duration-300' : '';
-
     return (
-        <div className={`rounded-lg overflow-hidden ${variants[variant]} ${hoverEffect} ${className}`}>
-            {/* Header */}
+        <div className={`glass-card rounded-2xl overflow-hidden flex flex-col h-full ${className}`}>
+
+            {/* Header Optional */}
             {(title || icon) && (
-                <div className={`${padding ? 'p-6' : 'p-4'} border-b border-gray-100`}>
-                    <div className="flex items-center gap-3">
-                        {icon && <div className="text-3xl">{icon}</div>}
-                        <div className="flex-1">
-                            {title && <h3 className="text-xl font-bold text-gray-900">{title}</h3>}
-                            {subtitle && <p className="text-sm text-gray-600 mt-1">{subtitle}</p>}
-                        </div>
+                <div className="px-6 pt-6 pb-2 flex items-start justify-between">
+                    <div>
+                        {title && (
+                            <h3 className="text-xl font-bold text-white font-display tracking-tight">
+                                {title}
+                            </h3>
+                        )}
+                        {subtitle && (
+                            <p className="text-sm text-gray-400 mt-1 font-light">
+                                {subtitle}
+                            </p>
+                        )}
                     </div>
+                    {icon && (
+                        <div className="p-2 rounded-lg bg-white/5 text-neon-green border border-white/5 shadow-inner">
+                            {icon}
+                        </div>
+                    )}
                 </div>
             )}
 
-            {/* Body */}
-            <div className={padding ? 'p-6' : 'p-0'}>
+            {/* Content */}
+            <div className={`flex-1 ${noPadding ? '' : 'p-6'}`}>
                 {children}
             </div>
-
-            {/* Footer */}
-            {footer && (
-                <div className={`${padding ? 'px-6 py-4' : 'p-4'} bg-gray-50 border-t border-gray-100`}>
-                    {footer}
-                </div>
-            )}
         </div>
     );
 }
