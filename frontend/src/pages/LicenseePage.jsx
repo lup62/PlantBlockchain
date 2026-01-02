@@ -128,13 +128,17 @@ export default function LicenseePage() {
             for (const id of recentIds) {
                 try {
                     const b = await contract.getBatch(id);
-                    const bLicIdStr = b.licenseID?.toString();
+                    const batchId = (b.batchID ?? b.id ?? b[0])?.toString();
+                    const licenseId = (b.licenseID ?? b.licenseId ?? b[2])?.toString();
+                    const bLicIdStr = licenseId;
                     const localLic = currentLicenses.find(l => l.licenseID?.toString() === bLicIdStr);
                     const productionDateLabel = formatTimestamp(b.productionDate);
                     const inspectionStatusNum = Number(b.inspectionStatus ?? b[7] ?? 0);
 
                     loaded.push({
                         ...b,
+                        batchID: batchId,
+                        licenseID: licenseId,
                         productionDateLabel,
                         inspectionStatusNum,
                         varietyName: localLic?.varietyName || 'Unknown',
@@ -354,7 +358,7 @@ export default function LicenseePage() {
                                             )}
                                             <button
                                                 onClick={() => setLatestBatch({
-                                                    id: batch.batchID.toString(),
+                                                    id: (batch.batchID ?? batch.id ?? '').toString(),
                                                     variety: batch.varietyName,
                                                     date: batch.productionDateLabel || formatTimestamp(batch.productionDate)
                                                 })}
