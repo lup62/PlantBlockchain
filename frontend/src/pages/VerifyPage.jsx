@@ -6,10 +6,12 @@
 import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useWeb3 } from '../contexts/Web3Context';
+import { IPFS_GATEWAY } from '../utils/config';
 import { Search, ShieldCheck, AlertTriangle, CheckCircle, XCircle, FileText, Calendar, QrCode, Camera, RefreshCw, X, Image } from 'lucide-react';
 import Card from '../components/common/Card';
 import Button from '../components/common/Button';
 import { Html5Qrcode } from 'html5-qrcode';
+import { MaxUint256 } from 'ethers';
 
 export default function VerifyPage() {
     const { contract } = useWeb3();
@@ -50,6 +52,12 @@ export default function VerifyPage() {
             const data = await contract.verifyBatch(id);
             const trustLevels = ['INVALID', 'LOW', 'MEDIUM', 'HIGH'];
             const trustStr = trustLevels[Number(data.trustLevel)] || 'UNKNOWN';
+            const docHash = data.variety.documentHash || data.variety.docHash;
+            const docUri = data.variety.documentURI || data.variety.docUri;
+            const normalizedGateway = IPFS_GATEWAY.endsWith('/') ? IPFS_GATEWAY : `${IPFS_GATEWAY}/`;
+            const expiryRaw = data.license.expiryDate;
+            const expiryBigInt = typeof expiryRaw === 'bigint' ? expiryRaw : BigInt(expiryRaw);
+            const isPermanent = expiryBigInt === MaxUint256;
 
             setResult({
                 isValid: data.isValid,
@@ -60,7 +68,7 @@ export default function VerifyPage() {
                     regNum: data.variety.registrationNumber,
                     breeder: data.breeder,
                     status: Number(data.variety.status),
-                    docUrl: data.variety.pinataUrl || (data.variety.docHash ? `https://gateway.pinata.cloud/ipfs/${data.variety.docHash}` : null)
+                    docUrl: docUri || (docHash ? `${normalizedGateway}${docHash}` : null)
                 },
                 batch: {
                     id: data.batch.batchID.toString(),
@@ -71,7 +79,7 @@ export default function VerifyPage() {
                 },
                 license: {
                     licensee: data.license.licensee,
-                    expiry: new Date(Number(data.license.expiryDate) * 1000).toLocaleDateString()
+                    expiry: isPermanent ? 'Never' : new Date(Number(expiryBigInt) * 1000).toLocaleDateString()
                 }
             });
 
