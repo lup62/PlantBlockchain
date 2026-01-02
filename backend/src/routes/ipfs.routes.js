@@ -83,6 +83,12 @@ const authenticate = (req, res, next) => {
   const apiKey = req.header('X-API-KEY');
   const secretToken = process.env.API_SECRET_TOKEN;
 
+  // Dev-friendly fallback: if no token is configured, skip auth but warn
+  if (!secretToken) {
+    console.warn('API_SECRET_TOKEN not set - IPFS routes are open (dev mode)');
+    return next();
+  }
+
   if (!secretToken || apiKey !== secretToken) {
     return res.status(401).json({
       error: 'Unauthorized',
