@@ -37,9 +37,6 @@ export function Web3Provider({ children }) {
 
     async function setupReadOnly() {
         try {
-            const { CONTRACT_ADDRESS, RPC_URL } = await import('../utils/config');
-            const { CONTRACT_ABI } = await import('../utils/contractABI');
-
             const rpcProvider = new ethers.JsonRpcProvider(RPC_URL);
             const readOnlyContract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, rpcProvider);
 
