@@ -103,12 +103,14 @@ h6 {
 
 .text-gradient {
     background: linear-gradient(to right, #ffffff, #a0a0a0);
+    background-clip: text;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
 }
 
 .text-neon {
     background: linear-gradient(to right, #00ff9d, #00f2ff);
+    background-clip: text;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
 }
