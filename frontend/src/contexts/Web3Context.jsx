@@ -28,6 +28,33 @@ export function Web3Provider({ children }) {
 
     const [counters, setCounters] = useState({ varieties: 0, batches: 0, licenses: 0 });
 
+    // 2. Initialize Read-Only Contract automatically
+    useEffect(() => {
+        if (!contract) {
+            setupReadOnly();
+        }
+    }, [contract]);
+
+    async function setupReadOnly() {
+        try {
+            const { CONTRACT_ADDRESS, RPC_URL } = await import('../utils/config');
+            const { CONTRACT_ABI } = await import('../utils/contractABI');
+
+            const rpcProvider = new ethers.JsonRpcProvider(RPC_URL);
+            const readOnlyContract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, rpcProvider);
+
+            setContract(readOnlyContract);
+            setProvider(rpcProvider);
+            // Don't set account or signer
+
+            // Optionally load global info
+            await loadUserInfo(readOnlyContract, null);
+            console.log("🌐 Public Read-Only Mode Active");
+        } catch (err) {
+            console.warn("Failed to setup read-only contract:", err);
+        }
+    }
+
     /**
      * Connect Wallet Function
      */
@@ -73,35 +100,34 @@ export function Web3Provider({ children }) {
     /**
      * Load User Info
      */
-    async function loadUserInfo(contract, address) {
+    async function loadUserInfo(targetContract, address) {
         try {
-            // Get Authority
-            const authority = await contract.getAuthority();
+            // Get Authority (Global Info)
+            const authority = await targetContract.getAuthority();
             setAuthorityAddress(authority);
 
-            const isAuth = authority.toLowerCase() === address.toLowerCase();
-            setIsAuthority(isAuth);
+            if (address) {
+                const isAuth = authority.toLowerCase() === address.toLowerCase();
+                setIsAuthority(isAuth);
 
-            // Get Inspector Status
-            const inspector = await contract.isInspectorAuthorized(address);
-            setIsInspector(inspector);
+                // Get Inspector Status
+                const inspector = await targetContract.isInspectorAuthorized(address);
+                setIsInspector(inspector);
+            } else {
+                setIsAuthority(false);
+                setIsInspector(false);
+            }
 
-            // Get Counters
-            const counts = await contract.getCounters();
+            // Get Counters (Global Info)
+            const counts = await targetContract.getCounters();
             setCounters({
                 varieties: Number(counts.varietiesCounter),
                 batches: Number(counts.batchesCounter),
                 licenses: Number(counts.licensesCounter)
             });
 
-            console.log("--- AUTH CHECK ---");
-            console.log("Me:", address);
-            console.log("Auth:", authority);
-            console.log("Match:", isAuth);
-
         } catch (err) {
-            console.error('Errore caricamento info:', err);
-            setAuthorityAddress('Error: ' + (err.reason || err.message) + ' (Target: ' + CONTRACT_ADDRESS + ')');
+            console.warn('Silent warning: Failed to load user info (might be disconnected):', err.message);
         }
     }
 
@@ -110,13 +136,12 @@ export function Web3Provider({ children }) {
      */
     function disconnectWallet() {
         setAccount(null);
-        setProvider(null);
         setSigner(null);
-        setContract(null);
         setAuthorityAddress(null);
         setIsAuthority(false);
         setIsInspector(false);
         setError(null);
+        setupReadOnly(); // Re-setup read-only
         console.log('🔌 Wallet disconnesso');
     }
 
