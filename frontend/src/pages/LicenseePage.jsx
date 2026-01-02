@@ -8,6 +8,8 @@ import { useWeb3 } from '../contexts/Web3Context';
 import { LayoutDashboard, Package, Clock, ShieldAlert, CheckCircle2, FileText } from 'lucide-react';
 import Card from '../components/common/Card';
 import Button from '../components/common/Button';
+import { QRCodeSVG } from 'qrcode.react';
+import { Download, X } from 'lucide-react';
 
 export default function LicenseePage() {
     const { account, contract, isConnected } = useWeb3();
@@ -21,6 +23,7 @@ export default function LicenseePage() {
     const [licenseId, setLicenseId] = useState('');
     const [quantity, setQuantity] = useState('');
     const [metadata, setMetadata] = useState('');
+    const [latestBatch, setLatestBatch] = useState(null); // To show QR code modal
 
     useEffect(() => {
         if (isConnected && contract) {
@@ -110,6 +113,15 @@ export default function LicenseePage() {
             await tx.wait();
 
             setStatus({ type: 'success', message: 'Batch Created Successfully on Blockchain.' });
+
+            // Capture latest batch info for QR code
+            const counts = await contract.getCounters();
+            const newID = counts.batchesCounter.toString();
+            setLatestBatch({
+                id: newID,
+                variety: licenses.find(l => l.licenseID.toString() === licenseId)?.varietyName || 'Unknown',
+                date: new Date().toLocaleString()
+            });
 
             // Reset form & Refresh
             setQuantity('');
@@ -258,7 +270,7 @@ export default function LicenseePage() {
                         ) : (
                             <div className="space-y-4 mt-4">
                                 {myBatches.map((batch, idx) => (
-                                    <div key={idx} className="p-6 rounded-2xl bg-white/5 border border-white/10 flex flex-col md:flex-row gap-6 items-start md:items-center justify-between">
+                                    <div key={idx} className="p-6 rounded-2xl bg-white/5 border border-white/10 flex flex-col md:flex-row gap-6 items-start md:items-center justify-between group">
                                         <div className="space-y-2">
                                             <div className="flex items-center gap-3">
                                                 <span className="px-2 py-1 rounded-md bg-white/10 text-xs font-mono text-gray-300">Batch #{batch.batchID?.toString()}</span>
@@ -271,6 +283,17 @@ export default function LicenseePage() {
                                         </div>
 
                                         <div className="flex items-center gap-4">
+                                            <button
+                                                onClick={() => setLatestBatch({
+                                                    id: batch.batchID.toString(),
+                                                    variety: "Batch Details",
+                                                    date: new Date(Number(batch.productionDate) * 1000).toLocaleString()
+                                                })}
+                                                className="opacity-0 group-hover:opacity-100 transition-opacity p-2 rounded-lg bg-blue-500/10 text-blue-400 border border-blue-500/20 hover:bg-blue-500/20"
+                                                title="Show QR Code"
+                                            >
+                                                <Package className="w-4 h-4" />
+                                            </button>
                                             <div className="text-right">
                                                 <p className="text-[10px] uppercase text-gray-500 font-bold mb-1">Inspection Status</p>
                                                 {Number(batch.inspectionStatus) === 0 ? (
@@ -313,6 +336,69 @@ export default function LicenseePage() {
                     </div>
                 </div>
             </div>
+
+            {/* QR CODE MODAL */}
+            {latestBatch && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-300">
+                    <div className="relative bg-[#0a0f0a] border border-white/10 p-8 rounded-3xl max-w-sm w-full text-center shadow-2xl scale-in-center">
+                        <button
+                            onClick={() => setLatestBatch(null)}
+                            className="absolute top-4 right-4 p-2 text-gray-500 hover:text-white transition-colors"
+                        >
+                            <X className="w-6 h-6" />
+                        </button>
+
+                        <div className="mb-6 inline-flex p-4 rounded-3xl bg-white">
+                            <QRCodeSVG
+                                id="batch-qrcode"
+                                value={`${window.location.origin}/verify?id=${latestBatch.id}`}
+                                size={200}
+                                level="H"
+                                includeMargin={true}
+                            />
+                        </div>
+
+                        <h3 className="text-2xl font-bold text-white mb-1">Batch QR Code</h3>
+                        <p className="text-green-400 font-mono text-sm mb-4">ID: #{latestBatch.id}</p>
+
+                        <div className="text-left bg-white/5 rounded-xl p-4 mb-6 border border-white/5">
+                            <div className="text-xs text-gray-500 uppercase font-bold mb-1">Variety</div>
+                            <div className="text-white text-sm truncate mb-3">{latestBatch.variety}</div>
+                            <div className="text-xs text-gray-500 uppercase font-bold mb-1">Created On</div>
+                            <div className="text-white text-sm">{latestBatch.date}</div>
+                        </div>
+
+                        <Button
+                            className="w-full flex items-center justify-center gap-2 py-4"
+                            onClick={() => {
+                                const svg = document.getElementById('batch-qrcode');
+                                const svgData = new XMLSerializer().serializeToString(svg);
+                                const canvas = document.createElement('canvas');
+                                const ctx = canvas.getContext('2d');
+                                const img = new Image();
+                                img.onload = () => {
+                                    canvas.width = img.width;
+                                    canvas.height = img.height;
+                                    ctx.drawImage(img, 0, 0);
+                                    const pngFile = canvas.toDataURL('image/png');
+                                    const downloadLink = document.createElement('a');
+                                    downloadLink.download = `batch-${latestBatch.id}-qrcode.png`;
+                                    downloadLink.href = pngFile;
+                                    downloadLink.click();
+                                };
+                                img.src = 'data:image/svg+xml;base64,' + btoa(svgData);
+                            }}
+                        >
+                            <Download className="w-5 h-5" />
+                            Scarica QR Code
+                        </Button>
+
+                        <p className="mt-4 text-[10px] text-gray-500 uppercase tracking-tighter">
+                            Stampalo e applicalo sul lotto per la tracciabilità
+                        </p>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
