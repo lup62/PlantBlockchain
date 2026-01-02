@@ -1,0 +1,177 @@
+/**
+ * TOTAL REWRITE: ORGANIC TECH THEME
+ * A complete departure from the previous design.
+ */
+
+@import "tailwindcss";
+
+/* ========================================
+   FONTS
+   ======================================== */
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@200;300;400;500;600;700;800&family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
+
+/* ========================================
+   VARS & THEME
+   ======================================== */
+:root {
+    --font-main: 'Outfit', sans-serif;
+    --font-display: 'Space Grotesk', sans-serif;
+
+    /* Deep Organic Dark Base */
+    --bg-deep: #020402;
+    --bg-surface: rgba(255, 255, 255, 0.03);
+    --border-glass: rgba(255, 255, 255, 0.08);
+
+    /* Neon Accents */
+    --neon-green: #00ff9d;
+    --neon-blue: #00f2ff;
+}
+
+/* ========================================
+   BASE
+   ======================================== */
+html,
+body {
+    background-color: var(--bg-deep);
+    color: #ffffff;
+    font-family: var(--font-main);
+    overflow-x: hidden;
+    height: 100%;
+}
+
+/* Background Aurora Animation */
+body::before {
+    content: '';
+    position: fixed;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle at center, rgba(0, 255, 157, 0.03) 0%, transparent 40%),
+        radial-gradient(circle at 80% 20%, rgba(0, 242, 255, 0.02) 0%, transparent 30%);
+    z-index: -1;
+    animation: aurora 20s linear infinite;
+    pointer-events: none;
+}
+
+@keyframes aurora {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+/* ========================================
+   GLASSMORPHISM UTILITIES
+   ======================================== */
+.glass-panel {
+    background: rgba(255, 255, 255, 0.02);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+}
+
+.glass-card {
+    background: linear-gradient(145deg, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0.01) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    backdrop-filter: blur(10px);
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.glass-card:hover {
+    border-color: rgba(0, 255, 157, 0.3);
+    transform: translateY(-5px);
+    box-shadow: 0 10px 40px -10px rgba(0, 255, 157, 0.1);
+}
+
+/* ========================================
+   TYPOGRAPHY
+   ======================================== */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    font-family: var(--font-display);
+    letter-spacing: -0.03em;
+}
+
+.text-gradient {
+    background: linear-gradient(to right, #ffffff, #a0a0a0);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.text-neon {
+    background: linear-gradient(to right, #00ff9d, #00f2ff);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+/* ========================================
+   COMPONENTS
+   ======================================== */
+.btn-neon {
+    background: transparent;
+    color: var(--neon-green);
+    border: 1px solid rgba(0, 255, 157, 0.3);
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.btn-neon::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: var(--neon-green);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    z-index: -1;
+}
+
+.btn-neon:hover {
+    border-color: var(--neon-green);
+    box-shadow: 0 0 20px rgba(0, 255, 157, 0.2);
+    color: #000;
+}
+
+.btn-neon:hover::before {
+    opacity: 1;
+}
+
+.btn-primary-glow {
+    background: var(--neon-green);
+    color: #020402;
+    font-weight: 600;
+    box-shadow: 0 0 15px rgba(0, 255, 157, 0.4);
+    border: none;
+    transition: all 0.3s ease;
+}
+
+.btn-primary-glow:hover {
+    box-shadow: 0 0 30px rgba(0, 255, 157, 0.6);
+    transform: scale(1.02);
+}
+
+/* Scrollbar invisibile ma funzionale */
+::-webkit-scrollbar {
+    width: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+}
