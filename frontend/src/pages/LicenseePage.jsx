@@ -1,15 +1,30 @@
 /**
  * LICENSEE PAGE - ORGANIC TECH STYLE
- * Polished Look & Bug Fixes
+ * Polished Look & Document Visibility
  */
 
 import { useState, useEffect } from 'react';
 import { useWeb3 } from '../contexts/Web3Context';
-import { LayoutDashboard, Package, Clock, ShieldAlert, CheckCircle2, FileText } from 'lucide-react';
+import { LayoutDashboard, Package, Clock, ShieldAlert, CheckCircle2, FileText, Download, X } from 'lucide-react';
 import Card from '../components/common/Card';
 import Button from '../components/common/Button';
 import { QRCodeSVG } from 'qrcode.react';
-import { Download, X } from 'lucide-react';
+import { IPFS_GATEWAY } from '../utils/config';
+import { MaxUint256 } from 'ethers';
+
+function formatTimestamp(ts) {
+    if (ts === undefined || ts === null) return 'N/A';
+    try {
+        const big = typeof ts === 'bigint' ? ts : BigInt(ts);
+        if (big === 0n) return 'N/A';
+        const ms = Number(big) * 1000;
+        if (!Number.isFinite(ms)) return 'N/A';
+        const date = new Date(ms);
+        return isNaN(date.getTime()) ? 'N/A' : date.toLocaleString();
+    } catch (e) {
+        return 'N/A';
+    }
+}
 
 export default function LicenseePage() {
     const { account, contract, isConnected } = useWeb3();
@@ -33,63 +48,103 @@ export default function LicenseePage() {
 
     async function loadInitialData() {
         setLoading(true);
-        await Promise.all([loadLicenses(), loadMyBatches()]);
-        setLoading(false);
+        try {
+            const myLicData = await loadLicenses();
+            await loadMyBatches(myLicData);
+        } catch (err) {
+            console.error('Error loading initial data:', err);
+        } finally {
+            setLoading(false);
+        }
     }
 
     async function loadLicenses() {
         try {
+            const normalizedGateway = IPFS_GATEWAY.endsWith('/') ? IPFS_GATEWAY : `${IPFS_GATEWAY}/`;
             const data = await contract.getLicensesByLicensee();
             // Enrich with variety info
             const enriched = await Promise.all(data.map(async (lic) => {
                 try {
                     const v = await contract.getVariety(lic.varietyID);
+                    const docHash = v.documentHash || v.docHash;
+                    const docUri = v.documentURI || v.docUri;
+                    const expiryRaw = lic.expiryDate;
+                    const expiryBigInt = typeof expiryRaw === 'bigint' ? expiryRaw : BigInt(expiryRaw);
+                    const expiryLabel = expiryBigInt === MaxUint256 ? 'Never' : new Date(Number(expiryBigInt) * 1000).toLocaleDateString();
+
                     return {
+                        ...lic,
                         licenseID: lic.licenseID,
                         varietyID: lic.varietyID,
                         licensee: lic.licensee,
-                        expiryDate: lic.expiryDate,
+                        expiryRaw: expiryBigInt,
+                        expiryLabel,
                         status: lic.status,
                         varietyName: v.denomination,
-                        docUrl: v.pinataUrl || (v.docHash ? `https://gateway.pinata.cloud/ipfs/${v.docHash}` : null)
+                        docUrl: docUri || (docHash ? `${normalizedGateway}${docHash}` : null)
                     };
                 } catch (e) {
+                    const expiryRaw = lic.expiryDate;
+                    const expiryBigInt = typeof expiryRaw === 'bigint' ? expiryRaw : BigInt(expiryRaw);
+                    const expiryLabel = expiryBigInt === MaxUint256 ? 'Never' : new Date(Number(expiryBigInt) * 1000).toLocaleDateString();
                     return {
+                        ...lic,
                         licenseID: lic.licenseID,
                         varietyID: lic.varietyID,
                         licensee: lic.licensee,
-                        expiryDate: lic.expiryDate,
-                        status: lic.status
+                        expiryRaw: expiryBigInt,
+                        expiryLabel,
+                        status: lic.status,
+                        varietyName: `Variety ID: ${lic.varietyID.toString()}`,
+                        docUrl: null
                     };
                 }
             }));
             setLicenses(enriched);
+            return enriched;
         } catch (err) {
             console.error('Error loading licenses:', err);
+            return [];
         }
     }
 
-    async function loadMyBatches() {
+    async function loadMyBatches(currentLicenses = licenses) {
+        if (!account) {
+            setMyBatches([]);
+            return;
+        }
+
         try {
             setFetchingBatches(true);
-            const counts = await contract.getCounters();
-            const total = Number(counts.batchesCounter);
 
-            // Get user's license IDs for filtering
-            const myLicData = await contract.getLicensesByLicensee();
-            const myLicIds = myLicData.map(l => l.licenseID?.toString() || '');
+            const filter = contract.filters.BatchCreated(null, null, account);
+            const events = await contract.queryFilter(filter, 0, "latest");
+            const ids = [...new Set(events.map(e => e.args?.batchID?.toString()).filter(Boolean))];
 
+            // Limit to most recent 50 to avoid long loops
+            const recentIds = ids.slice(-50).reverse();
             const loaded = [];
-            // Scan backwards
-            for (let i = total; i >= 1; i--) {
+
+            for (const id of recentIds) {
                 try {
-                    const b = await contract.getBatch(i);
-                    if (myLicIds.includes(b.licenseID?.toString())) {
-                        loaded.push(b);
-                    }
-                } catch (e) { break; }
-                if (loaded.length >= 30) break; // Limit
+                    const b = await contract.getBatch(id);
+                    const bLicIdStr = b.licenseID?.toString();
+                    const localLic = currentLicenses.find(l => l.licenseID?.toString() === bLicIdStr);
+                    const productionDateLabel = formatTimestamp(b.productionDate);
+                    const inspectionStatusNum = Number(b.inspectionStatus ?? b[7] ?? 0);
+
+                    loaded.push({
+                        ...b,
+                        productionDateLabel,
+                        inspectionStatusNum,
+                        varietyName: localLic?.varietyName || 'Unknown',
+                        docUrl: localLic?.docUrl || null
+                    });
+                } catch (e) {
+                    console.warn(`Unable to load batch ${id}:`, e?.message || e);
+                }
             }
+
             setMyBatches(loaded);
         } catch (err) {
             console.error('Error loading batches:', err);
@@ -117,9 +172,11 @@ export default function LicenseePage() {
             // Capture latest batch info for QR code
             const counts = await contract.getCounters();
             const newID = counts.batchesCounter.toString();
+            const selectedLic = licenses.find(l => l.licenseID.toString() === licenseId);
+
             setLatestBatch({
                 id: newID,
-                variety: licenses.find(l => l.licenseID.toString() === licenseId)?.varietyName || 'Unknown',
+                variety: selectedLic?.varietyName || 'Unknown',
                 date: new Date().toLocaleString()
             });
 
@@ -138,7 +195,7 @@ export default function LicenseePage() {
     if (!isConnected) return <div className="text-center py-20 text-gray-500">Connect Wallet to Access Licensee Dashboard</div>;
 
     return (
-        <div className="max-w-6xl mx-auto py-12">
+        <div className="max-w-6xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
 
             <header className="flex items-center gap-6 mb-12">
                 <div className="p-4 rounded-2xl bg-gradient-to-br from-blue-500/20 to-indigo-500/20 border border-blue-500/30">
@@ -155,7 +212,7 @@ export default function LicenseePage() {
                 {/* Center Column: Batch Creation */}
                 <div className="lg:col-span-2 space-y-8">
                     {status && (
-                        <div className={`p-4 rounded-xl border ${status.type === 'success' ? 'bg-green-500/10 border-green-500' : 'bg-red-500/10 border-red-500'} text-sm text-white`}>
+                        <div className={`p-4 rounded-xl border ${status.type === 'success' ? 'bg-green-500/10 border-green-500' : 'bg-red-500/10 border-red-500'} text-sm text-white transition-all`}>
                             {status.message}
                         </div>
                     )}
@@ -170,8 +227,8 @@ export default function LicenseePage() {
                                         {licenses.map((lic) => {
                                             const lID = lic.licenseID?.toString() || '??';
                                             const isActive = Number(lic.status) === 0; // 0 = ACTIVE
-                                            const expiry = new Date(Number(lic.expiryDate) * 1000);
-                                            const isExpired = Date.now() > expiry.getTime();
+                                            const expiry = lic.expiryRaw === MaxUint256 ? null : new Date(Number(lic.expiryRaw) * 1000);
+                                            const isExpired = expiry ? Date.now() > expiry.getTime() : false;
 
                                             // Only clickable if valid
                                             const canSelect = isActive && !isExpired;
@@ -195,11 +252,11 @@ export default function LicenseePage() {
                                                         )}
                                                     </div>
                                                     <div className="text-sm text-gray-200 font-bold mb-1 truncate">
-                                                        {lic.varietyName || (lic.varietyID ? `Variety ID: ${lic.varietyID.toString()}` : "Unknown Variety")}
+                                                        {lic.varietyName}
                                                     </div>
                                                     <div className="flex justify-between items-end">
                                                         <div className="text-xs text-gray-500">
-                                                            Expires: {expiry.toLocaleDateString()}
+                                                            Expires: {expiry ? expiry.toLocaleDateString() : 'Never'}
                                                         </div>
                                                         {lic.docUrl && (
                                                             <a
@@ -277,32 +334,44 @@ export default function LicenseePage() {
                                                 <span className="px-2 py-1 rounded-md bg-white/10 text-xs font-mono text-gray-300">Lic #{batch.licenseID?.toString()}</span>
                                             </div>
                                             <div className="flex flex-col gap-1">
-                                                <p className="text-sm text-gray-400">Qty: <span className="text-white font-bold">{batch.quantity}</span> | Date: <span className="text-white">{new Date(Number(batch.productionDate) * 1000).toLocaleString()}</span></p>
+                                                <p className="text-sm text-gray-200 font-bold">{batch.varietyName}</p>
+                                                <p className="text-sm text-gray-400">Qty: <span className="text-white font-bold">{batch.quantity}</span> | Date: <span className="text-white">{batch.productionDateLabel || formatTimestamp(batch.productionDate)}</span></p>
                                                 {batch.metadata && <p className="text-xs text-gray-500 italic">"{batch.metadata}"</p>}
                                             </div>
                                         </div>
 
                                         <div className="flex items-center gap-4">
+                                            {batch.docUrl && (
+                                                <a
+                                                    href={batch.docUrl}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="p-2 rounded-lg bg-blue-500/10 text-blue-400 border border-blue-500/20 hover:bg-blue-500/20 transition-all"
+                                                    title="View Variety Certificate"
+                                                >
+                                                    <FileText className="w-4 h-4" />
+                                                </a>
+                                            )}
                                             <button
                                                 onClick={() => setLatestBatch({
                                                     id: batch.batchID.toString(),
-                                                    variety: "Batch Details",
-                                                    date: new Date(Number(batch.productionDate) * 1000).toLocaleString()
+                                                    variety: batch.varietyName,
+                                                    date: batch.productionDateLabel || formatTimestamp(batch.productionDate)
                                                 })}
-                                                className="opacity-0 group-hover:opacity-100 transition-opacity p-2 rounded-lg bg-blue-500/10 text-blue-400 border border-blue-500/20 hover:bg-blue-500/20"
+                                                className="p-2 rounded-lg bg-blue-500/10 text-blue-400 border border-blue-500/20 hover:bg-blue-500/20 transition-all"
                                                 title="Show QR Code"
                                             >
                                                 <Package className="w-4 h-4" />
                                             </button>
                                             <div className="text-right">
-                                                <p className="text-[10px] uppercase text-gray-500 font-bold mb-1">Inspection Status</p>
-                                                {Number(batch.inspectionStatus) === 0 ? (
-                                                    <span className="px-2 py-1 rounded-lg bg-yellow-500/10 text-yellow-500 text-xs border border-yellow-500/20">PENDING</span>
-                                                ) : Number(batch.inspectionStatus) === 1 ? (
-                                                    <span className="px-2 py-1 rounded-lg bg-green-500/10 text-green-500 text-xs border border-green-500/20">APPROVED</span>
-                                                ) : (
-                                                    <span className="px-2 py-1 rounded-lg bg-red-500/10 text-red-500 text-xs border border-red-500/20">REJECTED</span>
-                                                )}
+                                                <p className="text-[10px] uppercase text-gray-500 font-bold mb-1">Status</p>
+                                                 {batch.inspectionStatusNum === 0 ? (
+                                                     <span className="px-2 py-1 rounded-lg bg-yellow-500/10 text-yellow-500 text-xs border border-yellow-500/20 font-bold">PENDING</span>
+                                                 ) : batch.inspectionStatusNum === 1 ? (
+                                                     <span className="px-2 py-1 rounded-lg bg-green-500/10 text-green-500 text-xs border border-green-500/20 font-bold">APPROVED</span>
+                                                 ) : (
+                                                     <span className="px-2 py-1 rounded-lg bg-red-500/10 text-red-500 text-xs border border-red-500/20 font-bold">REJECTED</span>
+                                                 )}
                                             </div>
                                         </div>
                                     </div>
