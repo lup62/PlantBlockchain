@@ -1,4 +1,4 @@
-/**
+﻿/**
  * NOT FOUND PAGE
  * 
  * Pagina 404
@@ -7,6 +7,7 @@
 import { Link } from 'react-router-dom';
 import { Home, Search } from 'lucide-react';
 import Button from '../components/common/Button';
+import notFoundImg from '../assets/404-plant.png';
 
 export default function NotFoundPage() {
     return (
@@ -14,7 +15,7 @@ export default function NotFoundPage() {
             <div className="text-center max-w-lg">
                 <div className="text-9xl font-bold text-gray-200 mb-2">404</div>
                 <img
-                    src="/src/assets/404-plant.png"
+                    src={notFoundImg}
                     alt="Pagina non trovata"
                     className="mx-auto max-w-[280px] h-auto mb-8 rounded-2xl shadow-xl border-4 border-white/10"
                     onError={(e) => { e.target.style.display = 'none'; }}
