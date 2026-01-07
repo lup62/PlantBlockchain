@@ -6,11 +6,66 @@ import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useWeb3 } from '../contexts/Web3Context';
 import { IPFS_GATEWAY } from '../utils/config';
-import { Search, ShieldCheck, AlertTriangle, CheckCircle, XCircle, FileText, Calendar, QrCode, Camera, RefreshCw, X, Image } from 'lucide-react';
+import { Search, ShieldCheck, AlertTriangle, CheckCircle, XCircle, ShieldAlert, FileText, Calendar, QrCode, Camera, RefreshCw, X, Image } from 'lucide-react';
 import Card from '../components/common/Card';
 import Button from '../components/common/Button';
 import { Html5Qrcode } from 'html5-qrcode';
 import { MaxUint256 } from 'ethers';
+
+function getTrustTheme(trustLevel) {
+    switch (trustLevel) {
+        case 'HIGH':
+            return {
+                icon: CheckCircle,
+                containerClass: 'bg-green-500/[0.03] border-green-500/20 shadow-[0_0_80px_rgba(34,197,94,0.08)]',
+                iconWrapClass: 'bg-gradient-to-br from-green-400 to-green-600',
+                iconClass: 'text-black',
+                badgeClass: 'bg-green-500/10 border border-green-500/30 text-green-400',
+                titleClass: 'text-green-50',
+                messageClass: 'text-green-200/70'
+            };
+        case 'MEDIUM':
+            return {
+                icon: AlertTriangle,
+                containerClass: 'bg-orange-500/[0.04] border-orange-500/30 shadow-[0_0_80px_rgba(249,115,22,0.10)]',
+                iconWrapClass: 'bg-gradient-to-br from-orange-400 to-amber-500',
+                iconClass: 'text-black',
+                badgeClass: 'bg-orange-500/10 border border-orange-500/30 text-orange-400',
+                titleClass: 'text-orange-50',
+                messageClass: 'text-orange-200/70'
+            };
+        case 'LOW':
+            return {
+                icon: ShieldAlert,
+                containerClass: 'bg-yellow-500/[0.04] border-yellow-500/30 shadow-[0_0_80px_rgba(234,179,8,0.10)]',
+                iconWrapClass: 'bg-gradient-to-br from-yellow-400 to-amber-400',
+                iconClass: 'text-black',
+                badgeClass: 'bg-yellow-500/10 border border-yellow-500/30 text-yellow-400',
+                titleClass: 'text-yellow-50',
+                messageClass: 'text-yellow-200/70'
+            };
+        case 'INVALID':
+            return {
+                icon: XCircle,
+                containerClass: 'bg-red-500/[0.03] border-red-500/30 shadow-[0_0_80px_rgba(239,68,68,0.10)]',
+                iconWrapClass: 'bg-gradient-to-br from-red-400 to-red-600',
+                iconClass: 'text-white',
+                badgeClass: 'bg-red-500/10 border border-red-500/30 text-red-400',
+                titleClass: 'text-red-50',
+                messageClass: 'text-red-200/70'
+            };
+        default:
+            return {
+                icon: AlertTriangle,
+                containerClass: 'bg-gray-500/[0.03] border-gray-500/20 shadow-[0_0_80px_rgba(107,114,128,0.10)]',
+                iconWrapClass: 'bg-gradient-to-br from-gray-400 to-gray-600',
+                iconClass: 'text-black',
+                badgeClass: 'bg-gray-500/10 border border-gray-500/30 text-gray-400',
+                titleClass: 'text-gray-100',
+                messageClass: 'text-gray-300/70'
+            };
+    }
+}
 
 export default function VerifyPage() {
     const { contract } = useWeb3();
@@ -196,6 +251,11 @@ export default function VerifyPage() {
         return () => { stopScanner(); };
     }, []);
 
+    const trustLevelLabel = result?.trustLevel ? result.trustLevel.toString().trim().toUpperCase() : 'UNKNOWN';
+    const trustTheme = getTrustTheme(trustLevelLabel);
+    const TrustIcon = trustTheme.icon;
+    const statusTitle = result?.isValid ? 'Authenticity Verified' : 'Invalid Batch';
+
     return (
         <div className="max-w-4xl mx-auto py-12 px-4">
             <div id="reader-hidden" style={{ display: 'none' }}></div>
@@ -303,35 +363,17 @@ export default function VerifyPage() {
                 <div className="animate-in slide-in-from-bottom-8 duration-700 space-y-8">
 
                     {/* Status Card */}
-                    <div className={`
-                        p-12 rounded-[40px] border-2 text-center relative overflow-hidden transition-all duration-700
-                        ${result.isValid
-                            ? 'bg-green-500/[0.03] border-green-500/20 shadow-[0_0_80px_rgba(34,197,94,0.05)]'
-                            : 'bg-red-500/[0.03] border-red-500/20 shadow-[0_0_80px_rgba(239,68,68,0.05)]'
-                        }
-                    `}>
-                        {result.isValid ? (
-                            <div className="flex flex-col items-center">
-                                <div className="w-24 h-24 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center mb-6 shadow-[0_0_40px_rgba(34,197,94,0.3)] animate-pulse-subtle">
-                                    <CheckCircle className="w-12 h-12 text-black" />
-                                </div>
-                                <h2 className="text-5xl font-black text-white mb-2 tracking-tighter uppercase">Authenticity Verified</h2>
-                                <div className="inline-flex items-center px-4 py-1 rounded-full bg-green-500/10 border border-green-500/30 text-green-400 font-mono text-[10px] font-bold uppercase tracking-[0.2em]">
-                                    Trust Level: {result.trustLevel}
-                                </div>
+                    <div className={`p-12 rounded-[40px] border-2 text-center relative overflow-hidden transition-all duration-700 ${trustTheme.containerClass}`}>
+                        <div className="flex flex-col items-center">
+                            <div className={`w-24 h-24 rounded-full flex items-center justify-center mb-6 shadow-[0_0_40px_rgba(0,0,0,0.35)] animate-pulse-subtle ${trustTheme.iconWrapClass}`}>
+                                <TrustIcon className={`w-12 h-12 ${trustTheme.iconClass}`} />
                             </div>
-                        ) : (
-                            <div className="flex flex-col items-center">
-                                <div className="w-24 h-24 bg-gradient-to-br from-red-400 to-red-600 rounded-full flex items-center justify-center mb-6 shadow-[0_0_40px_rgba(239,68,68,0.3)]">
-                                    <XCircle className="w-12 h-12 text-white" />
-                                </div>
-                                <h2 className="text-5xl font-black text-white mb-2 tracking-tighter uppercase">Invalid Batch</h2>
-                                <div className="inline-flex items-center px-4 py-1 rounded-full bg-red-500/10 border border-red-500/30 text-red-400 font-mono text-[10px] font-bold uppercase tracking-[0.2em]">
-                                    Unverified Status
-                                </div>
+                            <h2 className={`text-5xl font-black mb-2 tracking-tighter uppercase ${trustTheme.titleClass}`}>{statusTitle}</h2>
+                            <div className={`inline-flex items-center px-4 py-1 rounded-full font-mono text-[10px] font-bold uppercase tracking-[0.2em] ${trustTheme.badgeClass}`}>
+                                Trust Level: {trustLevelLabel}
                             </div>
-                        )}
-                        <p className="mt-8 text-gray-400 italic text-xl max-w-2xl mx-auto font-light leading-relaxed">
+                        </div>
+                        <p className={`mt-8 italic text-xl max-w-2xl mx-auto font-light leading-relaxed ${trustTheme.messageClass}`}>
                             "{result.message}"
                         </p>
                     </div>
