@@ -458,6 +458,8 @@ contract VarietyLicenseRegistry {
   ) external licenseExists(_licenseID) onlyLicenseeOf(_licenseID)  {
     License storage license = licenses[_licenseID];
     require(license.status == LicenseStatus.ACTIVE, "License must be active to create a batch");
+    Variety storage variety = varieties[license.varietyID];
+    require(variety.status == VarietyStatus.ACTIVE, "Variety is revoked");
     require(
       license.expiryDate == type(uint256).max || license.expiryDate > block.timestamp,
       "License has expired"
