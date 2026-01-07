@@ -26,6 +26,11 @@ docker compose up --build
 ```
 docker compose exec blockchain npx hardhat run scripts/magic_deploy.js --network localhost
 ```
+
+Oppure se vuoi solo il deploy senza popolamento dei dati:
+```
+docker compose exec blockchain npx hardhat run scripts/deploy.js --network localhost
+```
 4) Apri:
 - Frontend: http://localhost:4173
 - Backend: http://localhost:3001
