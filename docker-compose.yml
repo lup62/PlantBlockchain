@@ -1,6 +1,6 @@
 services:
   blockchain:
-    image: node:18
+    image: node:20
     working_dir: /app/Blockchain
     volumes:
       - ./:/app
