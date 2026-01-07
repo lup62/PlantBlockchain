@@ -68,6 +68,7 @@ export default function LicenseePage() {
                     const v = await contract.getVariety(lic.varietyID);
                     const docHash = v.documentHash || v.docHash;
                     const docUri = v.documentURI || v.docUri;
+                    const varietyStatus = Number(v.status);
                     const expiryRaw = lic.expiryDate;
                     const expiryBigInt = typeof expiryRaw === 'bigint' ? expiryRaw : BigInt(expiryRaw);
                     const expiryLabel = expiryBigInt === MaxUint256 ? 'Never' : new Date(Number(expiryBigInt) * 1000).toLocaleDateString();
@@ -80,6 +81,7 @@ export default function LicenseePage() {
                         expiryRaw: expiryBigInt,
                         expiryLabel,
                         status: lic.status,
+                        varietyStatus,
                         varietyName: v.denomination,
                         docUrl: docUri || (docHash ? `${normalizedGateway}${docHash}` : null)
                     };
@@ -95,6 +97,7 @@ export default function LicenseePage() {
                         expiryRaw: expiryBigInt,
                         expiryLabel,
                         status: lic.status,
+                        varietyStatus: null,
                         varietyName: `Variety ID: ${lic.varietyID.toString()}`,
                         docUrl: null
                     };
@@ -233,9 +236,10 @@ export default function LicenseePage() {
                                             const isActive = Number(lic.status) === 0; // 0 = ACTIVE
                                             const expiry = lic.expiryRaw === MaxUint256 ? null : new Date(Number(lic.expiryRaw) * 1000);
                                             const isExpired = expiry ? Date.now() > expiry.getTime() : false;
+                                            const varietyRevoked = Number(lic.varietyStatus) === 1;
 
                                             // Only clickable if valid
-                                            const canSelect = isActive && !isExpired;
+                                            const canSelect = isActive && !isExpired && !varietyRevoked;
 
                                             return (
                                                 <div
@@ -258,6 +262,11 @@ export default function LicenseePage() {
                                                     <div className="text-sm text-gray-200 font-bold mb-1 truncate">
                                                         {lic.varietyName}
                                                     </div>
+                                                    {varietyRevoked && (
+                                                        <div className="text-[10px] text-red-400 font-bold uppercase tracking-wider">
+                                                            Variety revoked
+                                                        </div>
+                                                    )}
                                                     <div className="flex justify-between items-end">
                                                         <div className="text-xs text-gray-500">
                                                             Expires: {expiry ? expiry.toLocaleDateString() : 'Never'}
