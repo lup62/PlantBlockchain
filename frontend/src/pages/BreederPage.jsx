@@ -5,9 +5,12 @@
 
 import { useState, useEffect } from 'react';
 import { useWeb3 } from '../contexts/Web3Context';
-import { Sprout, Share2, AlertTriangle, RefreshCw, Clock, Ban } from 'lucide-react';
+import { Sprout, Share2, AlertTriangle, RefreshCw, Clock, Ban, FileText } from 'lucide-react';
 import Card from '../components/common/Card';
 import Button from '../components/common/Button';
+import { IPFS_GATEWAY } from '../utils/config';
+
+const NORMALIZED_IPFS_GATEWAY = IPFS_GATEWAY.endsWith('/') ? IPFS_GATEWAY : `${IPFS_GATEWAY}/`;
 
 export default function BreederPage() {
     const { account, contract, isConnected } = useWeb3();
@@ -47,11 +50,15 @@ export default function BreederPage() {
                     const v = await contract.getVariety(i);
                     // Check if current user is the breeder
                     if (v.breeder.toLowerCase() === account.toLowerCase() && Number(v.status) === 0) { // 0 = ACTIVE
+                        const docHash = v.documentHash || v.docHash;
+                        const docUri = v.documentURI || v.docUri || v.pinataUrl;
+                        const docUrl = docUri || (docHash ? `${NORMALIZED_IPFS_GATEWAY}${docHash}` : null);
+
                         loaded.push({
                             id: v.varietyID.toString(),
                             name: v.denomination,
                             regNum: v.registrationNumber,
-                            docUrl: v.pinataUrl || (v.docHash ? `https://gateway.pinata.cloud/ipfs/${v.docHash}` : null)
+                            docUrl
                         });
                     }
                 } catch (e) { console.error(e); }
