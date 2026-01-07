@@ -168,6 +168,13 @@ describe("VarietyLicenseRegistry High Coverage Test Suite", function () {
             const b = await registry.getBatch(1);
             expect(b.inspectionStatus).to.equal(2); // REJECTED
         });
+
+        it("Should block batch creation if variety is revoked", async function () {
+            await registry.revokeVariety(1, "R");
+            await expect(
+                registry.connect(licensee).createBatch(1, "10kg", "B1")
+            ).to.be.revertedWith("Variety is revoked");
+        });
     });
 
     describe("5. VerifyBatch & Trust Levels", function () {
