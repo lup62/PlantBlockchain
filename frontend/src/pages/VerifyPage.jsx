@@ -1,6 +1,5 @@
 /**
- * VERIFY PRODUCT PAGE - PREMIUM ORGANIC TECH STYLE
- * Polished version in full English.
+ * VERIFY PRODUCT PAGE
  */
 
 import { useState, useEffect, useRef } from 'react';
