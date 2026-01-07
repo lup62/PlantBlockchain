@@ -48,9 +48,11 @@ export default function HomePage() {
                             </Button>
                         </Link>
                     </div>
-                    <Button variant="ghost" size="lg" className="h-14 text-lg border border-white/10">
-                        Read Whitepaper
-                    </Button>
+                    <a href="/whitepaper.pdf" target="_blank" rel="noopener noreferrer">
+                        <Button variant="ghost" size="lg" className="h-14 text-lg border border-white/10">
+                            Read Whitepaper
+                        </Button>
+                    </a>
                 </div>
             </section>
 
