@@ -99,10 +99,29 @@ export default function BreederPage() {
         e.preventDefault();
         try {
             setLoading(true); setStatus(null);
+            if (!newExpiryDate) {
+                setStatus({ type: 'error', message: 'Please select a new expiration date.' });
+                return;
+            }
             const timestamp = Math.floor(new Date(newExpiryDate).getTime() / 1000);
             const tx = await contract.updateLicenseExpiration(targetLicenseId, timestamp);
             await tx.wait();
             setStatus({ type: 'success', message: 'License Expiration Updated Successfully.' });
+            setTargetLicenseId(''); setNewExpiryDate('');
+        } catch (err) { setStatus({ type: 'error', message: err.message || 'Update Failed' }); } finally { setLoading(false); }
+    }
+
+    async function handleMakePermanent(e) {
+        e.preventDefault();
+        try {
+            setLoading(true); setStatus(null);
+            if (!targetLicenseId) {
+                setStatus({ type: 'error', message: 'License ID is required.' });
+                return;
+            }
+            const tx = await contract.makeLicensePermanent(targetLicenseId);
+            await tx.wait();
+            setStatus({ type: 'success', message: 'License set to permanent.' });
             setTargetLicenseId(''); setNewExpiryDate('');
         } catch (err) { setStatus({ type: 'error', message: err.message || 'Update Failed' }); } finally { setLoading(false); }
     }
@@ -187,9 +206,18 @@ export default function BreederPage() {
                                         <input type="text" value={licenseeAddress} onChange={(e) => setLicenseeAddress(e.target.value)} className="input-field" placeholder="0x..." />
                                     </div>
                                     <div className="space-y-2">
-                                        <label className="label">Duration (Days)</label>
+                                        <div className="flex items-center justify-between">
+                                            <label className="label">Duration (Days)</label>
+                                            <button
+                                                type="button"
+                                                onClick={() => setExpiryDays('0')}
+                                                className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${expiryDays === '0' ? 'bg-green-500/20 border border-green-500/40 text-green-200' : 'bg-white/5 border border-white/10 text-gray-300 hover:text-white hover:border-green-400/50'}`}
+                                            >
+                                                Permanent
+                                            </button>
+                                        </div>
                                         <input type="number" value={expiryDays} onChange={(e) => setExpiryDays(e.target.value)} className="input-field" placeholder="365" />
-                                        <p className="text-[10px] text-gray-500 ml-1">Set to <b>0</b> for a Permanent License (No Expiry)</p>
+                                        <p className="text-[10px] text-gray-500 ml-1">Click Permanent for a no-expiry license.</p>
                                     </div>
                                 </div>
                                 <Button type="submit" loading={loading} size="lg" className="w-full" disabled={!selectedVarietyId}>Issue License</Button>
@@ -208,8 +236,12 @@ export default function BreederPage() {
                                 <div className="space-y-2">
                                     <label className="label">New Expiration Date</label>
                                     <input type="date" value={newExpiryDate} onChange={(e) => setNewExpiryDate(e.target.value)} className="input-field" />
+                                    <p className="text-[10px] text-gray-500 ml-1">Use Make Permanent to remove expiry.</p>
                                 </div>
-                                <Button type="submit" loading={loading} variant="primary" className="w-full">Update Expiration</Button>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <Button type="submit" loading={loading} variant="primary" className="w-full">Update Expiration</Button>
+                                    <Button type="button" loading={loading} variant="secondary" className="w-full" onClick={handleMakePermanent}>Make Permanent</Button>
+                                </div>
                             </form>
                         </Card>
                     )}
