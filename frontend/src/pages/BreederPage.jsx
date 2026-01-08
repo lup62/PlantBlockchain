@@ -5,12 +5,28 @@
 
 import { useState, useEffect } from 'react';
 import { useWeb3 } from '../contexts/Web3Context';
-import { Sprout, Share2, AlertTriangle, RefreshCw, Clock, Ban, FileText } from 'lucide-react';
+import { Sprout, Share2, RefreshCw, Clock, Ban, FileText, Users } from 'lucide-react';
 import Card from '../components/common/Card';
 import Button from '../components/common/Button';
 import { IPFS_GATEWAY } from '../utils/config';
+import { MaxUint256 } from 'ethers';
 
 const NORMALIZED_IPFS_GATEWAY = IPFS_GATEWAY.endsWith('/') ? IPFS_GATEWAY : `${IPFS_GATEWAY}/`;
+
+function formatExpiryDate(ts) {
+    if (ts === undefined || ts === null) return 'N/A';
+    try {
+        const big = typeof ts === 'bigint' ? ts : BigInt(ts);
+        if (big === MaxUint256) return 'Never';
+        if (big === 0n) return 'N/A';
+        const ms = Number(big) * 1000;
+        if (!Number.isFinite(ms)) return 'N/A';
+        const date = new Date(ms);
+        return isNaN(date.getTime()) ? 'N/A' : date.toLocaleDateString();
+    } catch (e) {
+        return 'N/A';
+    }
+}
 
 export default function BreederPage() {
     const { account, contract, isConnected } = useWeb3();
@@ -21,6 +37,7 @@ export default function BreederPage() {
     // Data state
     const [myVarieties, setMyVarieties] = useState([]);
     const [fetchingVarieties, setFetchingVarieties] = useState(false);
+    const [fetchingLicenses, setFetchingLicenses] = useState(false);
 
     // Issue Form
     const [selectedVarietyId, setSelectedVarietyId] = useState('');
@@ -49,7 +66,7 @@ export default function BreederPage() {
                 try {
                     const v = await contract.getVariety(i);
                     // Check if current user is the breeder
-                    if (v.breeder.toLowerCase() === account.toLowerCase() && Number(v.status) === 0) { // 0 = ACTIVE
+                    if (v.breeder.toLowerCase() === account.toLowerCase()) {
                         const docHash = v.documentHash || v.docHash;
                         const docUri = v.documentURI || v.docUri || v.pinataUrl;
                         const docUrl = docUri || (docHash ? `${NORMALIZED_IPFS_GATEWAY}${docHash}` : null);
@@ -58,13 +75,48 @@ export default function BreederPage() {
                             id: v.varietyID.toString(),
                             name: v.denomination,
                             regNum: v.registrationNumber,
-                            docUrl
+                            docUrl,
+                            status: Number(v.status),
+                            licenses: []
                         });
                     }
                 } catch (e) { console.error(e); }
             }
             setMyVarieties(loaded);
+            await loadVarietyLicenses(loaded);
         } catch (err) { console.error("Error loading varieties", err); } finally { setFetchingVarieties(false); }
+    }
+
+    async function loadVarietyLicenses(varieties) {
+        if (!varieties || varieties.length === 0) {
+            return;
+        }
+
+        try {
+            setFetchingLicenses(true);
+            const enriched = await Promise.all(varieties.map(async (v) => {
+                try {
+                    const rawLicenses = await contract.getLicensesByVariety(v.id);
+                    const licenses = rawLicenses.map((lic) => ({
+                        licenseID: lic.licenseID?.toString?.() ?? String(lic.licenseID),
+                        licensee: lic.licensee,
+                        expiryLabel: formatExpiryDate(lic.expiryDate),
+                        status: Number(lic.status)
+                    }));
+
+                    return { ...v, licenses };
+                } catch (err) {
+                    console.error(`Error loading licenses for variety ${v.id}`, err);
+                    return { ...v, licenses: [] };
+                }
+            }));
+
+            setMyVarieties(enriched);
+        } catch (err) {
+            console.error('Error loading licenses by variety', err);
+        } finally {
+            setFetchingLicenses(false);
+        }
     }
 
     async function handleIssueLicense(e) {
@@ -81,6 +133,7 @@ export default function BreederPage() {
             await tx.wait();
             setStatus({ type: 'success', message: `License Issued Successfully. ${expiryTimestamp === 0 ? 'Permanent access granted.' : ''}` });
             setLicenseeAddress(''); setExpiryDays('365');
+            await loadMyVarieties();
         } catch (err) { setStatus({ type: 'error', message: err.message || 'Transaction Failed' }); } finally { setLoading(false); }
     }
 
@@ -92,6 +145,7 @@ export default function BreederPage() {
             await tx.wait();
             setStatus({ type: 'success', message: 'License Revoked Successfully.' });
             setTargetLicenseId(''); setRevokeReason('');
+            await loadMyVarieties();
         } catch (err) { setStatus({ type: 'error', message: err.message || 'Revocation Failed' }); } finally { setLoading(false); }
     }
 
@@ -108,6 +162,7 @@ export default function BreederPage() {
             await tx.wait();
             setStatus({ type: 'success', message: 'License Expiration Updated Successfully.' });
             setTargetLicenseId(''); setNewExpiryDate('');
+            await loadMyVarieties();
         } catch (err) { setStatus({ type: 'error', message: err.message || 'Update Failed' }); } finally { setLoading(false); }
     }
 
@@ -123,10 +178,13 @@ export default function BreederPage() {
             await tx.wait();
             setStatus({ type: 'success', message: 'License set to permanent.' });
             setTargetLicenseId(''); setNewExpiryDate('');
+            await loadMyVarieties();
         } catch (err) { setStatus({ type: 'error', message: err.message || 'Update Failed' }); } finally { setLoading(false); }
     }
 
     if (!isConnected) return <div className="text-center py-20 text-gray-500">Connect Wallet to Access Breeder Dashboard</div>;
+
+    const activeVarieties = myVarieties.filter(v => Number(v.status) === 0);
 
     return (
         <div className="max-w-6xl mx-auto py-12 px-4">
@@ -144,7 +202,7 @@ export default function BreederPage() {
             <div className="mb-10">
                 <h3 className="text-white font-bold mb-4 flex items-center gap-2"><RefreshCw className="w-4 h-4 text-green-400" /> My Active Varieties</h3>
                 <div className="flex gap-4 overflow-x-auto pb-4">
-                    {myVarieties.length > 0 ? myVarieties.map(v => (
+                    {activeVarieties.length > 0 ? activeVarieties.map(v => (
                         <div key={v.id} className="min-w-[240px] p-5 bg-white/5 border border-white/10 rounded-2xl hover:border-green-500/30 transition-all flex flex-col justify-between">
                             <div>
                                 <div className="font-bold text-white text-lg">{v.name}</div>
@@ -163,8 +221,49 @@ export default function BreederPage() {
                                 </a>
                             )}
                         </div>
-                    )) : <div className="text-gray-500 italic">No varieties found.</div>}
+                    )) : <div className="text-gray-500 italic">No active varieties found.</div>}
                 </div>
+            </div>
+
+            {/* Varieties & Licensees */}
+            <div className="mb-12">
+                <Card title="Varieties & Licensees" icon={<Users className="text-green-400" />}>
+                    {fetchingVarieties || fetchingLicenses ? (
+                        <div className="py-8 text-center text-gray-500">Loading varieties and licenses...</div>
+                    ) : myVarieties.length === 0 ? (
+                        <div className="py-8 text-center text-gray-500 italic">No varieties found.</div>
+                    ) : (
+                        <div className="space-y-6">
+                            {myVarieties.map((v) => (
+                                <div key={v.id} className="p-5 rounded-2xl bg-white/5 border border-white/10">
+                                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+                                        <div>
+                                            <div className="text-lg font-bold text-white">{v.name}</div>
+                                            <div className="text-xs text-gray-500 font-mono">ID: {v.id} | {v.regNum}</div>
+                                        </div>
+                                        <span className={`text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-lg border ${Number(v.status) === 0 ? 'bg-green-500/10 text-green-400 border-green-500/30' : 'bg-red-500/10 text-red-400 border-red-500/30'}`}>
+                                            {Number(v.status) === 0 ? 'Active' : 'Revoked'}
+                                        </span>
+                                    </div>
+
+                                    {v.licenses && v.licenses.length > 0 ? (
+                                        <div className="space-y-2">
+                                            {v.licenses.map((lic) => (
+                                                <div key={`${v.id}-${lic.licenseID}`} className="grid grid-cols-1 md:grid-cols-[140px_1fr_160px] gap-3 items-center p-3 rounded-xl bg-black/30 border border-white/5">
+                                                    <div className="text-xs uppercase text-gray-400 font-bold">Lic #{lic.licenseID}</div>
+                                                    <div className="text-xs text-gray-300 font-mono break-all">{lic.licensee}</div>
+                                                    <div className="text-xs text-gray-400">Expiry: <span className="text-white">{lic.expiryLabel}</span></div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <div className="text-xs text-gray-500 italic">No licenses issued for this variety.</div>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </Card>
             </div>
 
             {/* Tabs */}
@@ -197,7 +296,7 @@ export default function BreederPage() {
                                         className="input-field"
                                     >
                                         <option value="">-- Select Variety --</option>
-                                        {myVarieties.map(v => <option key={v.id} value={v.id}>{v.name} (ID: {v.id})</option>)}
+                                        {activeVarieties.map(v => <option key={v.id} value={v.id}>{v.name} (ID: {v.id})</option>)}
                                     </select>
                                 </div>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
