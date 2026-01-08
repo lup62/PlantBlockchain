@@ -271,7 +271,6 @@ export default function VerifyPage() {
 
             {/* Verification Controls */}
             <div className="max-w-xl mx-auto mb-16 space-y-4">
-
                 {!isScanning && (
                     <div className="relative group">
                         <div className="absolute inset-0 bg-green-500/10 blur-3xl opacity-20 rounded-full group-hover:opacity-30 transition-opacity pointer-events-none"></div>
@@ -353,6 +352,12 @@ export default function VerifyPage() {
                     {scannerError && (
                         <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs text-center animate-in fade-in">
                             {scannerError}
+                        </div>
+                    )}
+
+                    {error && (
+                        <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs text-center animate-in fade-in">
+                            {error}
                         </div>
                     )}
                 </div>
