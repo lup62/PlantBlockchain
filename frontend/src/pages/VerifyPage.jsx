@@ -383,7 +383,7 @@ export default function VerifyPage() {
                         </p>
                     </div>
 
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
 
                         {/* Main Details */}
                         <div className="lg:col-span-2 space-y-8">
@@ -437,7 +437,7 @@ export default function VerifyPage() {
                         </div>
 
                         {/* Side Details - Cleaned up rectangles */}
-                        <div className="space-y-8 h-full">
+                        <div className="space-y-8">
                             <Card title="Activity Timeline" icon={<Calendar className="text-orange-400" />}>
                                 <div className="space-y-10 mt-6 relative before:absolute before:left-[11px] before:top-2 before:bottom-2 before:w-px before:bg-white/5">
                                     <div className="relative pl-10">

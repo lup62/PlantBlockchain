@@ -281,7 +281,7 @@ export default function BreederPage() {
 
             {status && <div className={`mb-8 p-4 rounded-xl border ${status.type === 'success' ? 'bg-green-500/10 border-green-500' : 'bg-red-500/10 border-red-500'} text-sm text-white`}>{status.message}</div>}
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
                 <div className="lg:col-span-2">
 
                     {/* ISSUE TAB */}
