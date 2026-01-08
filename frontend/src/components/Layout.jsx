@@ -3,7 +3,7 @@
  */
 import { Link, useLocation } from 'react-router-dom';
 import {
-    Home, Search, ShieldCheck, Sprout,
+    Home, Search, ShieldCheck, Sprout, ClipboardCheck,
     Hexagon, Users, Wallet, LogOut, Menu, X
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
@@ -29,7 +29,7 @@ export default function Layout({ children }) {
         { path: '/authority', label: 'Authority', icon: <ShieldCheck size={18} /> },
         { path: '/breeder', label: 'Breeder', icon: <Sprout size={18} /> },
         { path: '/licensee', label: 'Licensee', icon: <Users size={18} /> },
-        { path: '/inspector', label: 'Inspector', icon: <ShieldCheck size={18} /> },
+        { path: '/inspector', label: 'Inspector', icon: <ClipboardCheck size={18} /> },
     ];
 
     return (
