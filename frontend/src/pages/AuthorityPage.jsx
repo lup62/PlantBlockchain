@@ -9,7 +9,9 @@ import { ShieldCheck, Plus, UserPlus, Upload, FileText, Trash2, Ban } from 'luci
 import Card from '../components/common/Card';
 import Button from '../components/common/Button';
 import { uploadToPinata } from '../utils/pinataHelper';
-import { CONTRACT_ADDRESS } from '../utils/config';
+import { CONTRACT_ADDRESS, IPFS_GATEWAY } from '../utils/config';
+
+const NORMALIZED_IPFS_GATEWAY = IPFS_GATEWAY.endsWith('/') ? IPFS_GATEWAY : `${IPFS_GATEWAY}/`;
 
 export default function AuthorityPage() {
     const { contract, isAuthority, isConnected, account, authorityAddress, chainId, provider } = useWeb3();
@@ -318,7 +320,9 @@ export default function AuthorityPage() {
                                         {allVarieties.map((v, idx) => {
                                             const vID = v.varietyID.toString();
                                             const isRevoked = Number(v.status) === 1;
-                                            const docUrl = v.pinataUrl || (v.docHash ? `https://gateway.pinata.cloud/ipfs/${v.docHash}` : null);
+                                            const docHash = v.documentHash || v.docHash;
+                                            const docUri = v.documentURI || v.pinataUrl;
+                                            const docUrl = docUri || (docHash ? `${NORMALIZED_IPFS_GATEWAY}${docHash}` : null);
 
                                             return (
                                                 <div key={idx} className="p-5 rounded-2xl bg-white/5 border border-white/10 hover:border-white/20 transition-all flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
