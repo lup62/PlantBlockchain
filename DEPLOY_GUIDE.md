@@ -25,7 +25,7 @@ Per eseguire il progetto, assicurati di avere installato:
 
 Clona il repository:
 ```bash
-git clone <URL_DEL_TUO_REPO>
+git clone https://github.com/lup62/PlantBlockchain.git
 cd PlantBlockchain
 ```
 
