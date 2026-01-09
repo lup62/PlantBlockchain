@@ -4,13 +4,14 @@ Questa guida offre una panoramica dettagliata di come deployare l'intero stack P
 
 ## Indice
 1. [Prerequisiti](#prerequisiti)
-2. [Configurazione Ambiente (.env)](#configurazione-ambiente-env)
-3. [Deploy con Docker (Raccomandato)](#deploy-con-docker-raccomandato)
-4. [Deploy Manuale (Senza Docker)](#deploy-manuale-senza-docker)
+2. [Configurazione Metamask](#configurazione-metamask)
+3. [Configurazione Ambiente (.env)](#configurazione-ambiente-env)
+4. [Deploy con Docker (Raccomandato)](#deploy-con-docker-raccomandato)
+5. [Deploy Manuale (Senza Docker)](#deploy-manuale-senza-docker)
     - [Blockchain (Hardhat)](#1-blockchain-hardhat)
     - [Backend (Express)](#2-backend-express)
     - [Frontend (React/Vite)](#3-frontend-reactvite)
-5. [Troubleshooting](#troubleshooting-e-problemi-comuni)
+6. [Troubleshooting](#troubleshooting-e-problemi-comuni)
 
 ---
 
@@ -28,6 +29,24 @@ Clona il repository:
 git clone https://github.com/lup62/PlantBlockchain.git
 cd PlantBlockchain
 ```
+
+---
+
+## Configurazione Metamask
+
+Per interagire con la blockchain locale serve aggiungere la rete Hardhat e importare un account di test.
+
+1. Apri Metamask > menu reti > "Aggiungi rete" > "Aggiungi una rete manualmente".
+2. Inserisci i valori:
+   - Nome rete: `Hardhat Localhost`
+   - Nuovo URL RPC: `http://localhost:8545`
+   - ID chain: `31337`
+   - Simbolo valuta: `ETH`
+3. Importa un account di test con una private key stampata da:
+   - `npx hardhat node` (manuale), oppure
+   - `scripts/magic_deploy.js` (Docker o manuale).
+
+Nota: se riavvii il nodo Hardhat, le chiavi cambiano. In quel caso reimporta l'account o fai il reset dell'account in Metamask (Impostazioni > Avanzate > Cancella attivita tab).
 
 ---
 
