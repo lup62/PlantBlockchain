@@ -8,7 +8,7 @@ import { useWeb3 } from '../contexts/Web3Context';
 import { ShieldCheck, Plus, UserPlus, Upload, FileText, Trash2, Ban } from 'lucide-react';
 import Card from '../components/common/Card';
 import Button from '../components/common/Button';
-import { uploadToPinata } from '../utils/pinataHelper';
+import { uploadToPinata, unpinFromPinata } from '../utils/pinataHelper';
 import { CONTRACT_ADDRESS, IPFS_GATEWAY } from '../utils/config';
 
 const NORMALIZED_IPFS_GATEWAY = IPFS_GATEWAY.endsWith('/') ? IPFS_GATEWAY : `${IPFS_GATEWAY}/`;
@@ -99,10 +99,11 @@ export default function AuthorityPage() {
             setStatus({ type: 'error', message: 'Please fill all fields and select a document.' });
             return;
         }
+        let uploadResult = null;
         try {
             setLoading(true);
             setStatus({ type: 'info', message: 'Uploading document to IPFS...' });
-            const uploadResult = await uploadToPinata(selectedFile);
+            uploadResult = await uploadToPinata(selectedFile);
             if (!uploadResult.success) throw new Error("IPFS Upload Failed: " + uploadResult.message);
 
             const { ipfsHash, pinataUrl } = uploadResult;
@@ -114,6 +115,12 @@ export default function AuthorityPage() {
             setStatus({ type: 'success', message: 'Variety Registered Successfully!' });
             setVarietyName(''); setRegistrationNumber(''); setBreederAddress(''); setSelectedFile(null);
         } catch (err) {
+            if (uploadResult?.success && uploadResult?.ipfsHash && !uploadResult?.simulated) {
+                const cleanup = await unpinFromPinata(uploadResult.ipfsHash);
+                if (!cleanup.success) {
+                    console.warn('Failed to unpin IPFS file:', cleanup.message);
+                }
+            }
             setStatus({ type: 'error', message: err.message || 'Registration Failed' });
         } finally {
             setLoading(false);

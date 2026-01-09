@@ -55,3 +55,41 @@ export async function uploadToPinata(file) {
         };
     }
 }
+
+/**
+ * Rimuove (unpin) un file da IPFS tramite il backend
+ * @param {string} ipfsHash - Hash del file da unpin
+ */
+export async function unpinFromPinata(ipfsHash) {
+    if (!ipfsHash) {
+        return { success: false, message: "Missing IPFS hash" };
+    }
+
+    if (!API_SECRET_TOKEN) {
+        console.warn("Backend API Secret Token not found. Skipping unpin.");
+        return { success: true, simulated: true };
+    }
+
+    try {
+        const res = await axios.delete(`${BACKEND_URL}/api/ipfs/${ipfsHash}`, {
+            headers: {
+                'X-API-KEY': API_SECRET_TOKEN
+            }
+        });
+
+        if (res.data?.success) {
+            return { success: true };
+        }
+
+        return {
+            success: false,
+            message: res.data?.message || "Unpin failed"
+        };
+    } catch (error) {
+        console.error("Error unpinning from IPFS via Backend:", error);
+        return {
+            success: false,
+            message: error.response?.data?.message || error.message
+        };
+    }
+}
