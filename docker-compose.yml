@@ -1,47 +1,53 @@
 services:
   blockchain:
-    image: node:20
-    working_dir: /app/Blockchain
-    volumes:
-      - ./:/app
-    command: sh -c "npm install && npx hardhat node"
+    build: ./blockchain
     ports:
       - "8545:8545"
     networks:
-      - plantnet
+      - plant-network
+    volumes:
+      # Optional: persist deployments if we want to debug
+      - ./blockchain/deployments:/app/deployments
+      # Mount frontend config for magic_deploy.js
+      - ./frontend/src/utils:/frontend/src/utils
 
   backend:
     build: ./backend
-    environment:
-      PORT: 3001
-      FRONTEND_URL: http://localhost:4173
-      API_SECRET_TOKEN: devtoken
-      IPFS_GATEWAY: https://ipfs.io
-    depends_on:
-      - blockchain
     ports:
       - "3001:3001"
+    environment:
+      - PORT=3001
+      - FRONTEND_URL=http://localhost:4173
+      - JSON_RPC_PROVIDER=http://blockchain:8545
+      - API_SECRET_TOKEN=MY_SUPER_SECRET_TOKEN_123
+      # Ensure other env vars are loaded from .env file
+    env_file:
+      - ./backend/.env
+    depends_on:
+      - blockchain
     networks:
-      - plantnet
+      - plant-network
+    volumes:
+      - backend-uploads:/app/uploads
 
   frontend:
     build:
       context: ./frontend
+      dockerfile: Dockerfile
       args:
-        VITE_API_URL: http://backend:3001
-        VITE_RPC_URL: http://blockchain:8545
-        VITE_CHAIN_ID: 31337
-        VITE_IPFS_GATEWAY: https://ipfs.io/ipfs/
-    environment:
-      VITE_E2E_MOCK: "false"
+        - VITE_API_URL=http://localhost:3001
+        - VITE_RPC_URL=http://localhost:8545
+        - VITE_API_SECRET_TOKEN=MY_SUPER_SECRET_TOKEN_123
+    ports:
+      - "4173:80"
     depends_on:
       - backend
-      - blockchain
-    ports:
-      - "4173:4173"
     networks:
-      - plantnet
+      - plant-network
 
 networks:
-  plantnet:
+  plant-network:
     driver: bridge
+
+volumes:
+  backend-uploads:

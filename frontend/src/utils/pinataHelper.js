@@ -1,6 +1,8 @@
 import axios from 'axios';
 
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
+import { API_URL } from './config';
+
+const BACKEND_URL = API_URL;
 const API_SECRET_TOKEN = import.meta.env.VITE_API_SECRET_TOKEN;
 
 /**

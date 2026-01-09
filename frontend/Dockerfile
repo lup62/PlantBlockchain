@@ -1,28 +1,30 @@
-# Frontend (Vite + React)
-FROM node:20-alpine
+# Stage 1: Build
+FROM node:20-alpine as build
 
 WORKDIR /app
 
-# Install deps
 COPY package*.json ./
-RUN npm ci
+RUN npm install
 
-# Copy source
-COPY . .
+# Build Arguments
+ARG VITE_API_URL
+ARG VITE_RPC_URL
+ARG VITE_API_SECRET_TOKEN
 
-# Build-time env (can be overridden at build)
-ARG VITE_API_URL=http://backend:3001
-ARG VITE_RPC_URL=http://blockchain:8545
-ARG VITE_CHAIN_ID=31337
-ARG VITE_IPFS_GATEWAY=https://ipfs.io/ipfs/
-
+# Bake them into the build
 ENV VITE_API_URL=$VITE_API_URL
 ENV VITE_RPC_URL=$VITE_RPC_URL
-ENV VITE_CHAIN_ID=$VITE_CHAIN_ID
-ENV VITE_IPFS_GATEWAY=$VITE_IPFS_GATEWAY
+ENV VITE_API_SECRET_TOKEN=$VITE_API_SECRET_TOKEN
 
-EXPOSE 4173
-
-# Build and serve static preview
+COPY . .
 RUN npm run build
-CMD ["npm", "run", "preview", "--", "--host", "0.0.0.0", "--port", "4173"]
+
+# Stage 2: Serve
+FROM nginx:alpine
+
+COPY --from=build /app/dist /usr/share/nginx/html
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+
+EXPOSE 80
+
+CMD ["nginx", "-g", "daemon off;"]
